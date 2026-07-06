@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+.env
+
+# Node
+node_modules/
+dist/
+.next/
+
+# Base de datos
+*.sql.bak
+
+# Variables de entorno
+.env
+.env.local
+.env.production
+
+# VS Code
+.vscode/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Docker
+*.log
