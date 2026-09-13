@@ -22,6 +22,7 @@ from app.models.cotizaciones import (
     ItemCotizacion,
     MensajeChat,
 )
+from app.models.tickets import ComentarioTicket, Ticket
 
 __all__ = [
     "Rol",
@@ -42,6 +43,9 @@ __all__ = [
     "MensajeChat",
     "Cotizacion",
     "ItemCotizacion",
+    "Ticket",
+    "ComentarioTicket",
 ]
+
 
 
