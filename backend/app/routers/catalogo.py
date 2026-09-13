@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.dependencies import obtener_usuario_actual, requiere_roles
@@ -14,6 +14,11 @@ from app.models.catalogo import (
 )
 from app.models.usuarios import Usuario
 from app.schemas.catalogo import (
+    BusquedaCatalogoRespuesta,
+    ConocimientoChatbotRespuesta,
+    ConocimientoProductoIA,
+    ConocimientoServicioIA,
+    PreguntaChatbotIA,
     PreguntaClaveActualizar,
     PreguntaClaveCrear,
     PreguntaClaveRespuesta,
@@ -689,4 +694,154 @@ def eliminar_producto_externo(
     producto.eliminado_en = datetime.now(timezone.utc)
     db.commit()
     return {"mensaje": f"Producto '{producto.nombre}' eliminado correctamente del catálogo"}
+
+
+# ===========================================================================
+# PASO 5.5: BÚSQUEDA Y LISTADO UNIFICADO OPTIMIZADO PARA EL EQUIPO TÉCNICO
+# ===========================================================================
+
+@router.get(
+    "/buscar",
+    response_model=BusquedaCatalogoRespuesta,
+    summary="Búsqueda unificada en el catálogo comercial",
+)
+def buscar_catalogo(
+    q: str = Query(..., min_length=1, description="Texto o palabra clave a buscar"),
+    incluir_servicios: bool = Query(default=True, description="Incluir servicios técnicos"),
+    incluir_productos: bool = Query(default=True, description="Incluir productos/repuestos externos"),
+    limite: int = Query(default=20, ge=1, le=100, description="Cantidad máxima por categoría"),
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(obtener_usuario_actual),
+):
+    """Busca simultáneamente en servicios y productos del catálogo por nombre o descripción."""
+    termino = f"%{q.strip().lower()}%"
+    servicios_encontrados = []
+    productos_encontrados = []
+
+    if incluir_servicios:
+        servicios_encontrados = (
+            db.query(ServicioCatalogo)
+            .options(joinedload(ServicioCatalogo.preguntas_clave))
+            .filter(
+                ServicioCatalogo.eliminado_en.is_(None),
+                ServicioCatalogo.activo.is_(True),
+                or_(
+                    func.lower(ServicioCatalogo.nombre).like(termino),
+                    func.lower(ServicioCatalogo.descripcion).like(termino),
+                ),
+            )
+            .order_by(ServicioCatalogo.nombre.asc())
+            .limit(limite)
+            .all()
+        )
+
+    if incluir_productos:
+        productos_encontrados = (
+            db.query(ProductoExterno)
+            .filter(
+                ProductoExterno.eliminado_en.is_(None),
+                ProductoExterno.activo.is_(True),
+                or_(
+                    func.lower(ProductoExterno.nombre).like(termino),
+                    func.lower(ProductoExterno.descripcion).like(termino),
+                ),
+            )
+            .order_by(ProductoExterno.nombre.asc())
+            .limit(limite)
+            .all()
+        )
+
+    return {
+        "termino": q.strip(),
+        "total_servicios": len(servicios_encontrados),
+        "total_productos": len(productos_encontrados),
+        "servicios": servicios_encontrados,
+        "productos": productos_encontrados,
+    }
+
+
+# ===========================================================================
+# PASO 5.6: RUTA ULTRA-RÁPIDA DE BASE DE CONOCIMIENTO PARA EL CHATBOT IA
+# ===========================================================================
+
+@router.get(
+    "/chatbot/conocimiento",
+    response_model=ConocimientoChatbotRespuesta,
+    summary="Extracción de conocimiento comercial para el Chatbot IA (Fase 6)",
+)
+def obtener_conocimiento_chatbot(
+    db: Session = Depends(get_db),
+):
+    """
+    Ruta especializada de lectura en milisegundos diseñada específicamente para
+    que el Chatbot con IA (Fase 6) consulte y extraiga las especificaciones, preguntas
+    clave y tarifas comerciales de C&R para armar cotizaciones precisas.
+    """
+    # Consulta optimizada de servicios con sus preguntas clave ordenadas
+    servicios_db = (
+        db.query(ServicioCatalogo)
+        .options(joinedload(ServicioCatalogo.preguntas_clave))
+        .filter(
+            ServicioCatalogo.eliminado_en.is_(None),
+            ServicioCatalogo.activo.is_(True),
+        )
+        .order_by(ServicioCatalogo.id.asc())
+        .all()
+    )
+
+    # Consulta optimizada de productos externos activos y con sus proveedores
+    productos_db = (
+        db.query(ProductoExterno)
+        .options(joinedload(ProductoExterno.proveedor))
+        .filter(
+            ProductoExterno.eliminado_en.is_(None),
+            ProductoExterno.activo.is_(True),
+        )
+        .order_by(ProductoExterno.id.asc())
+        .all()
+    )
+
+    servicios_ia = [
+        ConocimientoServicioIA(
+            id=s.id,
+            nombre=s.nombre,
+            descripcion=s.descripcion,
+            precio_mano_obra=float(s.precio_mano_obra),
+            horas_estimadas=float(s.horas_estimadas),
+            preguntas_clave=[
+                PreguntaChatbotIA(
+                    id=p.id,
+                    pregunta=p.pregunta,
+                    tipo_respuesta=p.tipo_respuesta,
+                    obligatoria=p.obligatoria,
+                    orden=p.orden,
+                )
+                for p in s.preguntas_clave
+            ],
+        )
+        for s in servicios_db
+    ]
+
+    productos_ia = [
+        ConocimientoProductoIA(
+            id=p.id,
+            proveedor_id=p.proveedor_id,
+            proveedor_nombre=p.proveedor.nombre if p.proveedor else "Proveedor externo",
+            nombre=p.nombre,
+            descripcion=p.descripcion,
+            precio_venta=p.precio_venta_sugerido,
+            tiempo_entrega_dias=p.tiempo_entrega_dias,
+            stock_disponible=p.stock_disponible,
+        )
+        for p in productos_db
+    ]
+
+    return ConocimientoChatbotRespuesta(
+        empresa="C&R Soluciones Tecnológicas",
+        total_servicios=len(servicios_ia),
+        total_productos=len(productos_ia),
+        servicios=servicios_ia,
+        productos=productos_ia,
+    )
+
 

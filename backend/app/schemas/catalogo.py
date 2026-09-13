@@ -160,3 +160,54 @@ class ProveedorDetalle(ProveedorRespuesta):
     class Config:
         from_attributes = True
 
+
+# ---------------------------------------------------------------------------
+# PASO 5.5: BÚSQUEDA UNIFICADA DEL CATÁLOGO
+# ---------------------------------------------------------------------------
+class BusquedaCatalogoRespuesta(BaseModel):
+    termino: str
+    total_servicios: int
+    total_productos: int
+    servicios: list[ServicioCatalogoRespuesta]
+    productos: list[ProductoExternoRespuesta]
+
+
+# ---------------------------------------------------------------------------
+# PASO 5.6: BASE DE CONOCIMIENTO COMPACTA PARA EL CHATBOT (RAG / FASTAPI)
+# ---------------------------------------------------------------------------
+class PreguntaChatbotIA(BaseModel):
+    id: int
+    pregunta: str
+    tipo_respuesta: str
+    obligatoria: bool
+    orden: int
+
+
+class ConocimientoServicioIA(BaseModel):
+    id: int
+    nombre: str
+    descripcion: str | None
+    precio_mano_obra: float
+    horas_estimadas: float
+    preguntas_clave: list[PreguntaChatbotIA] = []
+
+
+class ConocimientoProductoIA(BaseModel):
+    id: int
+    proveedor_id: int
+    proveedor_nombre: str
+    nombre: str
+    descripcion: str | None
+    precio_venta: float
+    tiempo_entrega_dias: int
+    stock_disponible: int
+
+
+class ConocimientoChatbotRespuesta(BaseModel):
+    empresa: str = "C&R Soluciones Tecnológicas"
+    total_servicios: int
+    total_productos: int
+    servicios: list[ConocimientoServicioIA]
+    productos: list[ConocimientoProductoIA]
+
+
