@@ -33,6 +33,59 @@ cr-soluciones-tecnologicas/
 7. Portal del cliente
 8. App móvil
 
+## Cómo levantar el proyecto en local
+
+1. Base de datos (crea el esquema y los datos de prueba automáticamente):
+
+   ```bash
+   docker compose up -d
+   ```
+
+2. Backend:
+
+   ```bash
+   cd backend
+   python -m venv venv
+   venv\Scripts\activate        # en Linux/Mac: source venv/bin/activate
+   pip install -r requirements.txt
+   copy ..\.env.example .env    # y completar SECRET_KEY
+   uvicorn app.main:app --reload
+   ```
+
+   Documentación interactiva: http://localhost:8000/docs
+
+3. Frontend:
+
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+### Usuarios de prueba
+
+Todos los usuarios sembrados por `database/cr_soluciones_db.sql` usan la contraseña
+`Test1234!`. El administrador es `admin@crsoluciones.com` y el técnico
+`tecnico@crsoluciones.com`.
+
+### Pruebas automáticas
+
+Con el backend corriendo:
+
+```bash
+cd backend
+python test_auth_flujo.py http://localhost:8000
+python test_inventario_flujo.py http://localhost:8000
+```
+
+### Inventario y códigos QR
+
+Los QR y las fotos se guardan en `backend/storage/` y se sirven en `/media`
+(la Fase 14 los mueve a Object Storage). El QR de cada equipo apunta a
+`APP_PUBLIC_URL/inventario/publico/{id}`, la única ruta del módulo que no pide
+login: muestra marca, modelo, categoría, estado y garantía, nunca datos del
+cliente. Para imprimir el QR se descarga desde `GET /inventario/{id}/qr`.
+
 ## Proyecto SENA
 
 **Programa:** Tecnólogo en Análisis y Desarrollo de Software
