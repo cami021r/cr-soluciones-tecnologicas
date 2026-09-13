@@ -33,6 +33,49 @@ cr-soluciones-tecnologicas/
 7. Portal del cliente
 8. App móvil
 
+## Cómo levantar el proyecto en local
+
+1. Base de datos (crea el esquema y los datos de prueba automáticamente):
+
+   ```bash
+   docker compose up -d
+   ```
+
+2. Backend:
+
+   ```bash
+   cd backend
+   python -m venv venv
+   venv\Scripts\activate        # en Linux/Mac: source venv/bin/activate
+   pip install -r requirements.txt
+   copy ..\.env.example .env    # y completar SECRET_KEY
+   uvicorn app.main:app --reload
+   ```
+
+   Documentación interactiva: http://localhost:8000/docs
+
+3. Frontend:
+
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+### Usuarios de prueba
+
+Todos los usuarios sembrados por `database/cr_soluciones_db.sql` usan la contraseña
+`Test1234!`. El administrador es `admin@crsoluciones.com`.
+
+### Pruebas del flujo de autenticación
+
+Con el backend corriendo:
+
+```bash
+cd backend
+python test_auth_flujo.py http://localhost:8000
+```
+
 ## Proyecto SENA
 
 **Programa:** Tecnólogo en Análisis y Desarrollo de Software
