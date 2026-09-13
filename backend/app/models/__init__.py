@@ -9,6 +9,12 @@ from app.models.inventario import (
     FotoEquipo,
     MovimientoEquipo,
 )
+from app.models.catalogo import (
+    Proveedor,
+    ServicioCatalogo,
+    PreguntaClaveServicio,
+    ProductoExterno,
+)
 
 __all__ = [
     "Rol",
@@ -20,4 +26,9 @@ __all__ = [
     "Contrato",
     "FotoEquipo",
     "MovimientoEquipo",
+    "Proveedor",
+    "ServicioCatalogo",
+    "PreguntaClaveServicio",
+    "ProductoExterno",
 ]
+
