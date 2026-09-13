@@ -145,3 +145,18 @@ class ProductoExternoRespuesta(ProductoExternoBase):
 
     class Config:
         from_attributes = True
+
+
+class ProductoExternoDetalle(ProductoExternoRespuesta):
+    proveedor: ProveedorRespuesta | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class ProveedorDetalle(ProveedorRespuesta):
+    productos: list[ProductoExternoRespuesta] = []
+
+    class Config:
+        from_attributes = True
+
