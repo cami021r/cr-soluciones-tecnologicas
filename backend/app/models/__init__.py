@@ -10,10 +10,17 @@ from app.models.inventario import (
     MovimientoEquipo,
 )
 from app.models.catalogo import (
-    Proveedor,
-    ServicioCatalogo,
     PreguntaClaveServicio,
     ProductoExterno,
+    Proveedor,
+    ServicioCatalogo,
+)
+from app.models.cotizaciones import (
+    Cliente,
+    ConversacionChat,
+    Cotizacion,
+    ItemCotizacion,
+    MensajeChat,
 )
 
 __all__ = [
@@ -30,5 +37,11 @@ __all__ = [
     "ServicioCatalogo",
     "PreguntaClaveServicio",
     "ProductoExterno",
+    "Cliente",
+    "ConversacionChat",
+    "MensajeChat",
+    "Cotizacion",
+    "ItemCotizacion",
 ]
+
 
