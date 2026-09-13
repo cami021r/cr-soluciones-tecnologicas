@@ -7,7 +7,6 @@ class UsuarioCrear(BaseModel):
     email: EmailStr
     password: str
     telefono: str | None = None
-    rol_id: int
 
     @field_validator("password")
     @classmethod

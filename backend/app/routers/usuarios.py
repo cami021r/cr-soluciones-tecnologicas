@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.database import get_db
 from app.models.usuarios import Usuario
+from app.models.roles import Rol
 from app.models.refresh_token import RefreshToken
 from app.schemas.usuarios import UsuarioCrear, UsuarioRespuesta, LoginRequest, TokenRespuesta
 from app.core.security import (
@@ -53,13 +54,17 @@ def _emitir_tokens(usuario: Usuario, db: Session, response: Response) -> TokenRe
 
 @router.post("/registro", response_model=UsuarioRespuesta, status_code=status.HTTP_201_CREATED)
 def registrar_usuario(datos: UsuarioCrear, db: Session = Depends(get_db)):
+    rol_cliente = db.query(Rol).filter(Rol.nombre == "Cliente").first()
+    if rol_cliente is None:
+        raise HTTPException(status_code=500, detail="No existe el rol Cliente en la base de datos")
+
     nuevo_usuario = Usuario(
         nombre=datos.nombre,
         apellido=datos.apellido,
         email=datos.email,
         password_hash=hash_password(datos.password),
         telefono=datos.telefono,
-        rol_id=datos.rol_id,
+        rol_id=rol_cliente.id,  # el registro público nunca crea Administradores ni Técnicos
     )
 
     db.add(nuevo_usuario)

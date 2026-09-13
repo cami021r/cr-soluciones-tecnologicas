@@ -26,19 +26,19 @@ def main() -> int:
     with httpx.Client(base_url=BASE_URL, timeout=15) as cliente:
         r = cliente.post("/usuarios/registro", json={
             "nombre": "Usuario", "apellido": "Prueba", "email": email,
-            "password": PASSWORD_SEEDERS, "telefono": "3000000000", "rol_id": 3,
+            "password": PASSWORD_SEEDERS, "telefono": "3000000000",
         })
         verificar("Registro de usuario nuevo", r.status_code == 201, r.text)
 
         r = cliente.post("/usuarios/registro", json={
             "nombre": "Usuario", "apellido": "Prueba", "email": email,
-            "password": PASSWORD_SEEDERS, "rol_id": 3,
+            "password": PASSWORD_SEEDERS,
         })
         verificar("Email duplicado es rechazado", r.status_code == 400, r.text)
 
         r = cliente.post("/usuarios/registro", json={
             "nombre": "Usuario", "apellido": "Prueba",
-            "email": f"corta_{uuid.uuid4().hex[:6]}@x.com", "password": "123", "rol_id": 3,
+            "email": f"corta_{uuid.uuid4().hex[:6]}@x.com", "password": "123",
         })
         verificar("Contraseña corta es rechazada", r.status_code == 422, r.text)
 

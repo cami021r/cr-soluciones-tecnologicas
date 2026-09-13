@@ -65,16 +65,26 @@ cr-soluciones-tecnologicas/
 ### Usuarios de prueba
 
 Todos los usuarios sembrados por `database/cr_soluciones_db.sql` usan la contraseña
-`Test1234!`. El administrador es `admin@crsoluciones.com`.
+`Test1234!`. El administrador es `admin@crsoluciones.com` y el técnico
+`tecnico@crsoluciones.com`.
 
-### Pruebas del flujo de autenticación
+### Pruebas automáticas
 
 Con el backend corriendo:
 
 ```bash
 cd backend
 python test_auth_flujo.py http://localhost:8000
+python test_inventario_flujo.py http://localhost:8000
 ```
+
+### Inventario y códigos QR
+
+Los QR y las fotos se guardan en `backend/storage/` y se sirven en `/media`
+(la Fase 14 los mueve a Object Storage). El QR de cada equipo apunta a
+`APP_PUBLIC_URL/inventario/publico/{id}`, la única ruta del módulo que no pide
+login: muestra marca, modelo, categoría, estado y garantía, nunca datos del
+cliente. Para imprimir el QR se descarga desde `GET /inventario/{id}/qr`.
 
 ## Proyecto SENA
 
