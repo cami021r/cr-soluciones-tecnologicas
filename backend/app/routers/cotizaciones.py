@@ -26,6 +26,7 @@ from app.services.cotizador import (
     extraer_json_cotizacion,
     limpiar_texto_para_usuario,
 )
+from app.services.finanzas import registrar_ingreso_cotizacion
 from app.services.ia import consultar_ia
 
 router = APIRouter(prefix="/cotizaciones", tags=["Cotizaciones y Chatbot IA"])
@@ -288,9 +289,15 @@ def actualizar_estado_cotizacion(
                 detail="No tienes autorización para modificar esta cotización",
             )
 
+    estado_anterior = cotizacion.estado
     cotizacion.estado = datos.estado
     db.commit()
     db.refresh(cotizacion)
+
+    # PASO 8.2: Disparador automático que inserta registro contable de ingreso al aceptar la cotización
+    if datos.estado in ("aceptada", "aprobada") and estado_anterior not in ("aceptada", "aprobada"):
+        registrar_ingreso_cotizacion(db, cotizacion)
+
     return cotizacion
 
 
