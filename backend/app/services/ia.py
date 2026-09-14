@@ -75,7 +75,7 @@ def consultar_ia(mensajes: list[dict[str, str]], contexto_catalogo: str) -> str:
     gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
     anthropic_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
 
-    prompt_sistema = PROMPT_SISTEMA_MAESTRO.format(contexto_catalogo=contexto_catalogo)
+    prompt_sistema = PROMPT_SISTEMA_MAESTRO.replace("{contexto_catalogo}", contexto_catalogo)
 
     # 1. Intentar con Gemini si la API key está disponible
     if gemini_key:
