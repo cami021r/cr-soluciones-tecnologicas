@@ -1,10 +1,11 @@
 from datetime import date, datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.dependencies import obtener_usuario_actual, requiere_roles
 from app.database import get_db
+from app.services.notificaciones import ejecutar_tarea_notificacion_asincrona
 from app.models.cotizaciones import (
     Cliente,
     ConversacionChat,
@@ -261,6 +262,7 @@ def obtener_cotizacion(
 def actualizar_estado_cotizacion(
     cotizacion_id: int,
     datos: CambiarEstadoCotizacion,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual),
 ):
@@ -297,6 +299,18 @@ def actualizar_estado_cotizacion(
     # PASO 8.2: Disparador automático que inserta registro contable de ingreso al aceptar la cotización
     if datos.estado in ("aceptada", "aprobada") and estado_anterior not in ("aceptada", "aprobada"):
         registrar_ingreso_cotizacion(db, cotizacion)
+
+        # PASO 9.4: Notificación automática en Telegram sobre cotización aceptada
+        background_tasks.add_task(
+            ejecutar_tarea_notificacion_asincrona,
+            tipo_evento="cotizacion_aceptada",
+            datos={
+                "cotizacion_id": cotizacion.id,
+                "total": float(cotizacion.total or 0.0),
+                "cliente_nombre": usuario_actual.nombre_completo,
+            },
+            usuario_id=usuario_actual.id,
+        )
 
     return cotizacion
 

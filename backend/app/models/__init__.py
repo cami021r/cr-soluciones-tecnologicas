@@ -28,6 +28,7 @@ from app.models.finanzas import (
     ProyeccionMensual,
     TransaccionFinanciera,
 )
+from app.models.notificaciones import LogNotificacion
 
 __all__ = [
     "Rol",
@@ -53,6 +54,7 @@ __all__ = [
     "CategoriaFinanciera",
     "TransaccionFinanciera",
     "ProyeccionMensual",
+    "LogNotificacion",
 ]
 
 
