@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 import os
 import time
 from datetime import datetime, timezone
@@ -20,47 +20,47 @@ TELEGRAM_API_BASE = "https://api.telegram.org"
 # ===========================================================================
 
 def formatear_plantilla_alerta(tipo_evento: str, datos: dict[str, Any]) -> str:
-    """Genera el texto formateado en Markdown para Telegram según el evento del sistema."""
+    """Genera el texto formateado en HTML para Telegram según el evento del sistema."""
     if tipo_evento == "nuevo_ticket":
         return (
-            f"🎫 *NUEVO TICKET REGISTRADO*\n"
-            f"• *Ticket:* #{datos.get('ticket_id')}\n"
-            f"• *Título:* {datos.get('titulo')}\n"
-            f"• *Prioridad:* {str(datos.get('prioridad', '')).upper()}\n"
-            f"• *Cliente:* {datos.get('cliente_nombre', 'Cliente')}\n"
-            f"• *Equipo ID:* {datos.get('equipo_id') or 'N/A'}\n"
-            f"• *Hora:* {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            f"🎫 <b>NUEVO TICKET REGISTRADO</b>\n"
+            f"• <b>Ticket:</b> #{datos.get('ticket_id')}\n"
+            f"• <b>Título:</b> {datos.get('titulo')}\n"
+            f"• <b>Prioridad:</b> {str(datos.get('prioridad', '')).upper()}\n"
+            f"• <b>Cliente:</b> {datos.get('cliente_nombre', 'Cliente')}\n"
+            f"• <b>Equipo ID:</b> {datos.get('equipo_id') or 'N/A'}\n"
+            f"• <b>Hora:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         )
 
     elif tipo_evento == "cotizacion_aceptada":
         return (
-            f"💰 *¡COTIZACIÓN ACEPTADA POR EL CLIENTE!*\n"
-            f"• *Cotización:* #{datos.get('cotizacion_id')}\n"
-            f"• *Monto Total:* ${datos.get('total', 0):,.2f} COP\n"
-            f"• *Cliente:* {datos.get('cliente_nombre', 'Cliente')}\n"
-            f"• *Estado contable:* Ingreso registrado automáticamente en Fase 8\n"
-            f"• *Hora:* {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            f"💰 <b>¡COTIZACIÓN ACEPTADA POR EL CLIENTE!</b>\n"
+            f"• <b>Cotización:</b> #{datos.get('cotizacion_id')}\n"
+            f"• <b>Monto Total:</b> ${datos.get('total', 0):,.2f} COP\n"
+            f"• <b>Cliente:</b> {datos.get('cliente_nombre', 'Cliente')}\n"
+            f"• <b>Estado contable:</b> Ingreso registrado automáticamente en Fase 8\n"
+            f"• <b>Hora:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         )
 
     elif tipo_evento == "cambio_estado_ticket":
         return (
-            f"🔄 *ACTUALIZACIÓN DE TICKET*\n"
-            f"• *Ticket:* #{datos.get('ticket_id')}\n"
-            f"• *Nuevo Estado:* {str(datos.get('nuevo_estado', '')).upper()}\n"
-            f"• *Técnico/Responsable:* {datos.get('usuario_nombre', 'Personal C&R')}\n"
-            f"• *Nota:* {datos.get('diagnostico', 'Actualización de avance')}"
+            f"🔄 <b>ACTUALIZACIÓN DE TICKET</b>\n"
+            f"• <b>Ticket:</b> #{datos.get('ticket_id')}\n"
+            f"• <b>Nuevo Estado:</b> {str(datos.get('nuevo_estado', '')).upper()}\n"
+            f"• <b>Técnico/Responsable:</b> {datos.get('usuario_nombre', 'Personal C&R')}\n"
+            f"• <b>Nota:</b> {datos.get('diagnostico', 'Actualización de avance')}"
         )
 
     elif tipo_evento == "contrato_por_vencer":
         return (
-            f"⚠️ *ALERTA: CONTRATO PRÓXIMO A VENCER*\n"
-            f"• *Contrato:* #{datos.get('contrato_id')}\n"
-            f"• *Cliente:* {datos.get('cliente_nombre', 'Cliente')}\n"
-            f"• *Días restantes:* {datos.get('dias_restantes')} días\n"
-            f"• *Fecha Vencimiento:* {datos.get('fecha_vencimiento')}"
+            f"⚠️ <b>ALERTA: CONTRATO PRÓXIMO A VENCER</b>\n"
+            f"• <b>Contrato:</b> #{datos.get('contrato_id')}\n"
+            f"• <b>Cliente:</b> {datos.get('cliente_nombre', 'Cliente')}\n"
+            f"• <b>Días restantes:</b> {datos.get('dias_restantes')} días\n"
+            f"• <b>Fecha Vencimiento:</b> {datos.get('fecha_vencimiento')}"
         )
 
-    return f"ℹ️ *ALERTA C&R SOLUCIONES*\n• *Evento:* {tipo_evento}\n• *Detalle:* {datos.get('mensaje', 'Notificación general del sistema')}"
+    return f"ℹ️ <b>ALERTA C&R SOLUCIONES</b>\n• <b>Evento:</b> {tipo_evento}\n• <b>Detalle:</b> {datos.get('mensaje', 'Notificación general del sistema')}"
 
 
 # ===========================================================================
@@ -81,7 +81,7 @@ def enviar_mensaje_telegram(mensaje: str, max_intentos: int = 3) -> tuple[bool, 
         return True, 1
 
     url = f"{TELEGRAM_API_BASE}/bot{token}/sendMessage"
-    payload = {"chat_id": chat_id, "text": mensaje, "parse_mode": "Markdown"}
+    payload = {"chat_id": chat_id, "text": mensaje, "parse_mode": "HTML"}
 
     intentos = 0
     espera = 1.0
