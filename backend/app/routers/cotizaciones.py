@@ -12,6 +12,7 @@ from app.models.cotizaciones import (
     ItemCotizacion,
     MensajeChat,
 )
+from app.models.finanzas import CategoriaFinanciera, TransaccionFinanciera
 from app.models.usuarios import Usuario
 from app.schemas.cotizaciones import (
     CambiarEstadoCotizacion,
@@ -288,7 +289,42 @@ def actualizar_estado_cotizacion(
                 detail="No tienes autorización para modificar esta cotización",
             )
 
+    estado_anterior = cotizacion.estado
     cotizacion.estado = datos.estado
+
+    # PASO 8.2: Disparador automático de ingreso al aceptar cotización
+    if datos.estado == "aceptada" and estado_anterior != "aceptada":
+        categoria_ingreso = (
+            db.query(CategoriaFinanciera)
+            .filter(CategoriaFinanciera.tipo == "ingreso")
+            .first()
+        )
+        if not categoria_ingreso:
+            categoria_ingreso = CategoriaFinanciera(
+                nombre="Cotización aceptada",
+                tipo="ingreso",
+                descripcion="Ingreso por servicio cotizado y aprobado",
+            )
+            db.add(categoria_ingreso)
+            db.flush()
+
+        transaccion_existente = (
+            db.query(TransaccionFinanciera)
+            .filter(TransaccionFinanciera.cotizacion_id == cotizacion.id)
+            .first()
+        )
+        if not transaccion_existente:
+            transaccion = TransaccionFinanciera(
+                categoria_id=categoria_ingreso.id,
+                cotizacion_id=cotizacion.id,
+                descripcion=f"Ingreso automático por Cotización #{cotizacion.id} aceptada",
+                monto=cotizacion.total,
+                tipo="ingreso",
+                es_fijo=False,
+                fecha=date.today(),
+            )
+            db.add(transaccion)
+
     db.commit()
     db.refresh(cotizacion)
     return cotizacion
