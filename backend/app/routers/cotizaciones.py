@@ -1,11 +1,13 @@
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.dependencies import obtener_usuario_actual, requiere_roles
 from app.database import get_db
 from app.services.notificaciones import ejecutar_tarea_notificacion_asincrona
+from app.services.pdf import generar_pdf_cotizacion
 from app.models.cotizaciones import (
     Cliente,
     ConversacionChat,
@@ -252,6 +254,37 @@ def obtener_cotizacion(
             )
 
     return cotizacion
+
+
+@router.get(
+    "/{cotizacion_id}/pdf",
+    summary="Descargar propuesta formal de cotización en formato PDF",
+)
+def descargar_cotizacion_pdf(
+    cotizacion_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(obtener_usuario_actual),
+):
+    """Genera y descarga el archivo PDF de alta fidelidad con membrete de C&R."""
+    # Verificar acceso si es cliente
+    cotizacion = db.query(Cotizacion).filter(Cotizacion.id == cotizacion_id, Cotizacion.eliminado_en.is_(None)).first()
+    if not cotizacion:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cotización no encontrada")
+
+    if usuario_actual.rol.nombre == "Cliente":
+        cliente = db.query(Cliente).filter(Cliente.usuario_id == usuario_actual.id).first()
+        if not cliente or cotizacion.cliente_id != cliente.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acceso denegado a esta cotización")
+
+    try:
+        ruta_pdf, url_descarga = generar_pdf_cotizacion(db, cotizacion_id)
+        return FileResponse(
+            path=str(ruta_pdf),
+            media_type="application/pdf",
+            filename=f"Cotizacion_COT_{cotizacion_id:04d}_CRSoluciones.pdf",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error generando PDF: {e}")
 
 
 @router.patch(
