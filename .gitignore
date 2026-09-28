@@ -27,3 +27,5 @@ Thumbs.db
 
 # Docker
 *.log
+# Archivos subidos en local (QR y fotos del inventario)
+backend/storage/
