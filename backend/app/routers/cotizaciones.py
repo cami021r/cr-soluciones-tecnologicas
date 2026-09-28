@@ -1,10 +1,13 @@
 from datetime import date, datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.dependencies import obtener_usuario_actual, requiere_roles
 from app.database import get_db
+from app.services.notificaciones import ejecutar_tarea_notificacion_asincrona
+from app.services.pdf import generar_pdf_cotizacion
 from app.models.cotizaciones import (
     Cliente,
     ConversacionChat,
@@ -26,6 +29,7 @@ from app.services.cotizador import (
     extraer_json_cotizacion,
     limpiar_texto_para_usuario,
 )
+from app.services.finanzas import registrar_ingreso_cotizacion
 from app.services.ia import consultar_ia
 
 router = APIRouter(prefix="/cotizaciones", tags=["Cotizaciones y Chatbot IA"])
@@ -252,6 +256,37 @@ def obtener_cotizacion(
     return cotizacion
 
 
+@router.get(
+    "/{cotizacion_id}/pdf",
+    summary="Descargar propuesta formal de cotización en formato PDF",
+)
+def descargar_cotizacion_pdf(
+    cotizacion_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(obtener_usuario_actual),
+):
+    """Genera y descarga el archivo PDF de alta fidelidad con membrete de C&R."""
+    # Verificar acceso si es cliente
+    cotizacion = db.query(Cotizacion).filter(Cotizacion.id == cotizacion_id, Cotizacion.eliminado_en.is_(None)).first()
+    if not cotizacion:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cotización no encontrada")
+
+    if usuario_actual.rol.nombre == "Cliente":
+        cliente = db.query(Cliente).filter(Cliente.usuario_id == usuario_actual.id).first()
+        if not cliente or cotizacion.cliente_id != cliente.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acceso denegado a esta cotización")
+
+    try:
+        ruta_pdf, url_descarga = generar_pdf_cotizacion(db, cotizacion_id)
+        return FileResponse(
+            path=str(ruta_pdf),
+            media_type="application/pdf",
+            filename=f"Cotizacion_COT_{cotizacion_id:04d}_CRSoluciones.pdf",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error generando PDF: {e}")
+
+
 @router.patch(
     "/{cotizacion_id}/estado",
     response_model=CotizacionRespuesta,
@@ -260,6 +295,7 @@ def obtener_cotizacion(
 def actualizar_estado_cotizacion(
     cotizacion_id: int,
     datos: CambiarEstadoCotizacion,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual),
 ):
@@ -288,9 +324,27 @@ def actualizar_estado_cotizacion(
                 detail="No tienes autorización para modificar esta cotización",
             )
 
+    estado_anterior = cotizacion.estado
     cotizacion.estado = datos.estado
     db.commit()
     db.refresh(cotizacion)
+
+    # PASO 8.2: Disparador automático que inserta registro contable de ingreso al aceptar la cotización
+    if datos.estado in ("aceptada", "aprobada") and estado_anterior not in ("aceptada", "aprobada"):
+        registrar_ingreso_cotizacion(db, cotizacion)
+
+        # PASO 9.4: Notificación automática en Telegram sobre cotización aceptada
+        background_tasks.add_task(
+            ejecutar_tarea_notificacion_asincrona,
+            tipo_evento="cotizacion_aceptada",
+            datos={
+                "cotizacion_id": cotizacion.id,
+                "total": float(cotizacion.total or 0.0),
+                "cliente_nombre": usuario_actual.nombre_completo,
+            },
+            usuario_id=usuario_actual.id,
+        )
+
     return cotizacion
 
 

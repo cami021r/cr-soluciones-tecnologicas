@@ -23,6 +23,12 @@ from app.models.cotizaciones import (
     MensajeChat,
 )
 from app.models.tickets import ComentarioTicket, Ticket
+from app.models.finanzas import (
+    CategoriaFinanciera,
+    ProyeccionMensual,
+    TransaccionFinanciera,
+)
+from app.models.notificaciones import LogNotificacion
 
 __all__ = [
     "Rol",
@@ -45,6 +51,10 @@ __all__ = [
     "ItemCotizacion",
     "Ticket",
     "ComentarioTicket",
+    "CategoriaFinanciera",
+    "TransaccionFinanciera",
+    "ProyeccionMensual",
+    "LogNotificacion",
 ]
 
 

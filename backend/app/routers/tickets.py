@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.dependencies import obtener_usuario_actual, requiere_roles
 from app.database import get_db
+from app.services.notificaciones import ejecutar_tarea_notificacion_asincrona
 from app.models.cotizaciones import Cliente
 from app.models.inventario import Equipo, MovimientoEquipo
 from app.models.tickets import ComentarioTicket, Ticket
@@ -87,6 +88,7 @@ def _registrar_auditoria_inmutable(
 )
 def crear_ticket(
     datos: TicketCrear,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual),
 ):
@@ -146,6 +148,20 @@ def crear_ticket(
 
     db.commit()
     db.refresh(nuevo_ticket)
+
+    # PASO 9.2 y 9.4: Despacho asíncrono de alerta a Telegram sin congelar al usuario
+    background_tasks.add_task(
+        ejecutar_tarea_notificacion_asincrona,
+        tipo_evento="nuevo_ticket",
+        datos={
+            "ticket_id": nuevo_ticket.id,
+            "titulo": nuevo_ticket.titulo,
+            "prioridad": nuevo_ticket.prioridad,
+            "cliente_nombre": usuario_actual.nombre_completo,
+            "equipo_id": nuevo_ticket.equipo_id,
+        },
+        usuario_id=usuario_actual.id,
+    )
 
     return _construir_respuesta_ticket(nuevo_ticket, usuario_actual)
 
