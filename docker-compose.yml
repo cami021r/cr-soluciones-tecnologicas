@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: cr_mysql_local
+    restart: always
+    environment:
+      MYSQL_DATABASE: cr_soluciones
+      MYSQL_ROOT_PASSWORD: root_secure_pass
+      MYSQL_USER: cr_admin
+      MYSQL_PASSWORD: admin_secure_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/cr_soluciones_db.sql:/docker-entrypoint-initdb.d/01_esquema.sql:ro
+
+volumes:
+  mysql_data:

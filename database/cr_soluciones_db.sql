@@ -4,6 +4,8 @@
 -- Creado: 2026
 -- ============================================================
 
+SET NAMES utf8mb4;
+
 CREATE DATABASE IF NOT EXISTS cr_soluciones
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
@@ -36,6 +38,19 @@ CREATE TABLE usuarios (
   PRIMARY KEY (id),
   UNIQUE KEY uq_usuarios_email (email),
   CONSTRAINT fk_usuarios_rol FOREIGN KEY (rol_id) REFERENCES roles(id)
+);
+
+CREATE TABLE refresh_tokens (
+  id         INT          NOT NULL AUTO_INCREMENT,
+  usuario_id INT          NOT NULL,
+  token_hash VARCHAR(64)  NOT NULL,
+  creado_en  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expira_en  DATETIME     NOT NULL,
+  revocado   BOOLEAN      NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_refresh_tokens_hash (token_hash),
+  KEY idx_refresh_tokens_usuario (usuario_id),
+  CONSTRAINT fk_refresh_tokens_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 );
 
 -- ============================================================
@@ -381,12 +396,12 @@ INSERT INTO roles (nombre, descripcion) VALUES
   ('Técnico',       'Gestión de tickets y equipos asignados'),
   ('Cliente',       'Acceso al portal personal del cliente');
 
--- Usuarios (contraseña: Test1234! - hash bcrypt de ejemplo)
+-- Usuarios (contraseña de todos: Test1234!)
 INSERT INTO usuarios (rol_id, nombre, apellido, email, password_hash, telefono) VALUES
-  (1, 'Camila',  'Quintero', 'admin@crsoluciones.com',    '$2b$12$ejemplo_hash_admin',    '3115389889'),
-  (3, 'Carlos',  'Mendoza',  'carlos@empresa.com',        '$2b$12$ejemplo_hash_cliente1', '3001234567'),
-  (3, 'María',   'López',    'maria@hogar.com',           '$2b$12$ejemplo_hash_cliente2', '3109876543'),
-  (3, 'Empresa', 'Tech SAS', 'contacto@techsas.com',     '$2b$12$ejemplo_hash_cliente3', '6017001122');
+  (1, 'Camila',  'Quintero', 'admin@crsoluciones.com',    '$2b$12$ZO3/9GZBvEcKQfnoE8DtT.k.UMComWz7DBsWjjaRdqFyHssSFu4Jm', '3115389889'),
+  (3, 'Carlos',  'Mendoza',  'carlos@empresa.com',        '$2b$12$k7j9WuBVFTgiQJPAYvTqS..UffUOf5R8Zh1SCVytCUFgDlEoPDw3W', '3001234567'),
+  (3, 'María',   'López',    'maria@hogar.com',           '$2b$12$MclFNLDs67gGM9k7k3S46esa99Z78i/hGW5/cixeMzAy9n8iR15WO', '3109876543'),
+  (3, 'Empresa', 'Tech SAS', 'contacto@techsas.com',      '$2b$12$cYIRLkUXm0.cMLaMzIDCYuRZ9L2.Ro4SWZPB6SDDx.GJmnF5ZL4fy', '6017001122');
 
 -- Clientes
 INSERT INTO clientes (usuario_id, nombre_empresa, tipo, documento) VALUES
