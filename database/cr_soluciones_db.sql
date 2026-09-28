@@ -401,7 +401,8 @@ INSERT INTO usuarios (rol_id, nombre, apellido, email, password_hash, telefono) 
   (1, 'Camila',  'Quintero', 'admin@crsoluciones.com',    '$2b$12$ZO3/9GZBvEcKQfnoE8DtT.k.UMComWz7DBsWjjaRdqFyHssSFu4Jm', '3115389889'),
   (3, 'Carlos',  'Mendoza',  'carlos@empresa.com',        '$2b$12$k7j9WuBVFTgiQJPAYvTqS..UffUOf5R8Zh1SCVytCUFgDlEoPDw3W', '3001234567'),
   (3, 'María',   'López',    'maria@hogar.com',           '$2b$12$MclFNLDs67gGM9k7k3S46esa99Z78i/hGW5/cixeMzAy9n8iR15WO', '3109876543'),
-  (3, 'Empresa', 'Tech SAS', 'contacto@techsas.com',      '$2b$12$cYIRLkUXm0.cMLaMzIDCYuRZ9L2.Ro4SWZPB6SDDx.GJmnF5ZL4fy', '6017001122');
+  (3, 'Empresa', 'Tech SAS', 'contacto@techsas.com',      '$2b$12$cYIRLkUXm0.cMLaMzIDCYuRZ9L2.Ro4SWZPB6SDDx.GJmnF5ZL4fy', '6017001122'),
+  (2, 'Andrés',  'Rojas',    'tecnico@crsoluciones.com',  '$2b$12$ZO3/9GZBvEcKQfnoE8DtT.k.UMComWz7DBsWjjaRdqFyHssSFu4Jm', '3124455667');
 
 -- Clientes
 INSERT INTO clientes (usuario_id, nombre_empresa, tipo, documento) VALUES
