@@ -1,123 +1,147 @@
-from datetime import date, datetime
+﻿from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
-
-from pydantic import BaseModel, Field
-
-TipoTransaccion = Literal["ingreso", "gasto"]
-TipoContrato = Literal["renta", "compra"]
-EstadoContrato = Literal["activo", "vencido", "cancelado", "finalizado"]
+from pydantic import BaseModel, ConfigDict, Field
 
 
-# ---------------------------------------------------------------------------
-# CATEGORÍAS FINANCIERAS
-# ---------------------------------------------------------------------------
-class CategoriaFinancieraCrear(BaseModel):
-    nombre: str = Field(..., min_length=2, max_length=100)
-    tipo: TipoTransaccion
-    descripcion: str | None = None
+# --- CATEGORÍAS FINANCIERAS ---
+class CategoriaFinancieraBase(BaseModel):
+    nombre: str = Field(..., max_length=100)
+    tipo: Literal["ingreso", "gasto"]
+    descripcion: str | None = Field(None, max_length=200)
 
 
-class CategoriaFinancieraRespuesta(BaseModel):
+class CategoriaFinancieraCrear(CategoriaFinancieraBase):
+    pass
+
+
+class CategoriaFinancieraRespuesta(CategoriaFinancieraBase):
     id: int
-    nombre: str
-    tipo: TipoTransaccion
-    descripcion: str | None
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
-# ---------------------------------------------------------------------------
-# TRANSACCIONES FINANCIERAS
-# ---------------------------------------------------------------------------
-class TransaccionCrear(BaseModel):
+# --- TRANSACCIONES FINANCIERAS ---
+class TransaccionFinancieraBase(BaseModel):
     categoria_id: int
-    descripcion: str = Field(..., min_length=3, max_length=300)
-    monto: Decimal = Field(..., gt=0, description="Monto en moneda local sin decimales negativos")
-    tipo: TipoTransaccion
-    es_fijo: bool = Field(default=False, description="True si es costo fijo (arriendo, nómina), False si es variable")
+    cotizacion_id: int | None = None
+    descripcion: str = Field(..., max_length=300)
+    monto: Decimal = Field(..., gt=0)
+    tipo: Literal["ingreso", "gasto"]
+    es_fijo: bool = False
     fecha: date = Field(default_factory=date.today)
 
 
-class TransaccionRespuesta(BaseModel):
+class TransaccionFinancieraCrear(TransaccionFinancieraBase):
+    pass
+
+
+class TransaccionFinancieraRespuesta(TransaccionFinancieraBase):
     id: int
-    categoria_id: int
-    categoria_nombre: str | None = None
-    cotizacion_id: int | None = None
-    descripcion: str
-    monto: Decimal
-    tipo: TipoTransaccion
-    es_fijo: bool
-    fecha: date
     creado_en: datetime
+    categoria_nombre: str | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
-# ---------------------------------------------------------------------------
-# CONTRATOS DE RENTA Y COMPRA
-# ---------------------------------------------------------------------------
+# --- CONTRATOS ---
 class ContratoCrear(BaseModel):
     cliente_id: int
     cotizacion_id: int | None = None
-    tipo: TipoContrato = "renta"
-    fecha_inicio: date = Field(default_factory=date.today)
+    tipo: Literal["renta", "compra"]
+    fecha_inicio: date
     fecha_vencimiento: date | None = None
-    valor_total: Decimal = Field(default=Decimal("0.00"), ge=0)
+    valor_total: Decimal = Field(..., ge=0)
     observaciones: str | None = None
     equipos_ids: list[int] = []
+
+
+class ContratoActualizar(BaseModel):
+    estado: Literal["activo", "vencido", "cancelado", "finalizado"] | None = None
+    fecha_vencimiento: date | None = None
+    observaciones: str | None = None
 
 
 class ContratoRespuesta(BaseModel):
     id: int
     cliente_id: int
-    cliente_nombre: str | None = None
     cotizacion_id: int | None = None
-    tipo: TipoContrato
+    tipo: str
     fecha_inicio: date
-    fecha_vencimiento: date | None
+    fecha_vencimiento: date | None = None
     valor_total: Decimal
-    estado: EstadoContrato
-    observaciones: str | None
+    estado: str
+    observaciones: str | None = None
     dias_restantes: int | None = None
-    alerta_proximo_vencer: bool = False
+    esta_por_vencer: bool = False
+    creado_en: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
-# ---------------------------------------------------------------------------
-# REPORTES Y DASHBOARD DE MÉTRICAS (PASOS 8.5, 8.6, 8.7)
-# ---------------------------------------------------------------------------
+# --- REPORTES Y MÉTRICAS (PASO 8.5) ---
+class DesgloseCategoria(BaseModel):
+    categoria_id: int
+    categoria_nombre: str
+    tipo: str
+    total: Decimal
+    porcentaje: float
+
+
 class ReporteMensualRespuesta(BaseModel):
     mes: int
     anio: int
     ingresos_brutos: Decimal
-    costos_totales: Decimal
+    gastos_totales: Decimal
+    gastos_fijos: Decimal
+    gastos_variables: Decimal
     utilidad_neta: Decimal
     margen_operativo_porcentaje: float
+    distribucion_gastos: list[DesgloseCategoria]
 
 
-class ItemProyeccion(BaseModel):
+# --- PROYECCIÓN PREDICTIVA (PASO 8.6) ---
+class ProyeccionMesItem(BaseModel):
     mes: int
     anio: int
+    mes_nombre: str
     ingreso_proyectado: Decimal
     gasto_proyectado: Decimal
-    utilidad_proyectada: Decimal
+    flujo_neto_proyectado: Decimal
 
 
-class ProyeccionesTrimestreRespuesta(BaseModel):
-    trimestre: list[ItemProyeccion]
+class ProyeccionTrimestralRespuesta(BaseModel):
+    trimestre: str
+    meses_analizados_historicos: int
     tendencia: str
-    nota_metodologica: str
+    proyecciones: list[ProyeccionMesItem]
+    total_ingresos_proyectados: Decimal
+    total_gastos_proyectados: Decimal
+    flujo_neto_acumulado_proyectado: Decimal
 
 
-class DashboardGraficasRespuesta(BaseModel):
-    meses_etiquetas: list[str]
-    serie_ingresos: list[float]
-    serie_gastos: list[float]
-    serie_utilidad: list[float]
-    distribucion_gastos_por_categoria: dict[str, float]
-    kpis: dict[str, float]
+# --- FORMATO PARA GRÁFICAS DE CHART.JS (PASO 8.7) ---
+class DatasetChart(BaseModel):
+    label: str
+    data: list[float]
+    backgroundColor: str | list[str] | None = None
+    borderColor: str | None = None
+
+
+class GraficaResumenAnual(BaseModel):
+    labels: list[str]
+    datasets: list[DatasetChart]
+
+
+class GraficaDistribucionGastos(BaseModel):
+    labels: list[str]
+    datasets: list[DatasetChart]
+
+
+class DashboardFinancieroRespuesta(BaseModel):
+    ingresos_mes_actual: Decimal
+    gastos_mes_actual: Decimal
+    utilidad_neta_mes_actual: Decimal
+    margen_operativo_mes_actual: float
+    contratos_activos: int
+    contratos_por_vencer_15_dias: int
+    cotizaciones_aceptadas_mes: int

@@ -1,0 +1,269 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Cotización #{{ cotizacion.id }} — C&R Soluciones Tecnológicas</title>
+  <style>
+    @page {
+      size: letter;
+      margin: 18mm 16mm 18mm 16mm;
+    }
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      margin: 0;
+      padding: 0;
+      font-size: 11pt;
+      line-height: 1.4;
+    }
+    .header-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+    }
+    .brand-title {
+      font-size: 20pt;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.5px;
+    }
+    .brand-accent {
+      color: #2563eb;
+    }
+    .brand-subtitle {
+      font-size: 9pt;
+      color: #64748b;
+      margin-top: 4px;
+    }
+    .quote-badge {
+      text-align: right;
+    }
+    .quote-badge-title {
+      font-size: 13pt;
+      font-weight: 700;
+      color: #2563eb;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .quote-badge-num {
+      font-size: 16pt;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .quote-meta {
+      font-size: 9pt;
+      color: #64748b;
+      margin-top: 4px;
+    }
+    .divider {
+      height: 2px;
+      background: linear-gradient(90deg, #2563eb 0%, #38bdf8 100%);
+      margin-bottom: 20px;
+    }
+    .info-card {
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 24px;
+    }
+    .info-grid {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .info-label {
+      font-size: 8.5pt;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      padding-bottom: 2px;
+    }
+    .info-val {
+      font-size: 10pt;
+      color: #0f172a;
+      font-weight: 600;
+    }
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+    }
+    .items-table th {
+      background-color: #0f172a;
+      color: #ffffff;
+      font-size: 8.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 10px 12px;
+      text-align: left;
+    }
+    .items-table th.text-right {
+      text-align: right;
+    }
+    .items-table th.text-center {
+      text-align: center;
+    }
+    .items-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 9.5pt;
+    }
+    .items-table tr:nth-child(even) td {
+      background-color: #f8fafc;
+    }
+    .items-table td.text-right {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .items-table td.text-center {
+      text-align: center;
+    }
+    .summary-section {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+    }
+    .notes-box {
+      width: 58%;
+      vertical-align: top;
+      background-color: #eff6ff;
+      border: 1px dashed #93c5fd;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 8.5pt;
+      color: #1e3a8a;
+    }
+    .totals-box {
+      width: 38%;
+      vertical-align: top;
+      padding-left: 20px;
+    }
+    .totals-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .totals-table td {
+      padding: 6px 0;
+      font-size: 10pt;
+    }
+    .total-highlight {
+      font-size: 13pt !important;
+      font-weight: 800;
+      color: #2563eb;
+      border-top: 2px solid #0f172a;
+      padding-top: 8px !important;
+    }
+    .footer {
+      border-top: 1px solid #e2e8f0;
+      padding-top: 16px;
+      margin-top: 32px;
+      font-size: 8pt;
+      color: #94a3b8;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <table class="header-table">
+    <tr>
+      <td style="vertical-align: top;">
+        <div class="brand-title">C&R <span class="brand-accent">Soluciones</span></div>
+        <div class="brand-subtitle">
+          C&R Soluciones Tecnológicas S.A.S. • NIT 901.834.855-2<br>
+          Bogotá D.C., Colombia • Móvil: +57 311 538 9889 • contacto@crsoluciones.com
+        </div>
+      </td>
+      <td class="quote-badge" style="vertical-align: top;">
+        <div class="quote-badge-title">Cotización Formal</div>
+        <div class="quote-badge-num">#COT-{{ '%04d' % cotizacion.id }}</div>
+        <div class="quote-meta">
+          Fecha de Emisión: <b>{{ fecha_emision }}</b><br>
+          Válida hasta: <b>{{ fecha_vencimiento }}</b>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <div class="divider"></div>
+
+  <div class="info-card">
+    <table class="info-grid">
+      <tr>
+        <td style="width: 50%;">
+          <div class="info-label">Cliente / Razón Social</div>
+          <div class="info-val">{{ cliente.nombre_completo or cliente.nombre_empresa }}</div>
+        </td>
+        <td style="width: 25%;">
+          <div class="info-label">Documento / NIT</div>
+          <div class="info-val">{{ cliente.documento }}</div>
+        </td>
+        <td style="width: 25%;">
+          <div class="info-label">Teléfono de Contacto</div>
+          <div class="info-val">{{ cliente.telefono or 'N/A' }}</div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <table class="items-table">
+    <thead>
+      <tr>
+        <th style="width: 8%;" class="text-center">#</th>
+        <th style="width: 48%;">Descripción del Concepto / Servicio</th>
+        <th style="width: 12%;" class="text-center">Cant.</th>
+        <th style="width: 16%;" class="text-right">V/r Unitario</th>
+        <th style="width: 16%;" class="text-right">Total (COP)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td class="text-center">{{ loop.index }}</td>
+        <td>
+          <b>{{ item.descripcion }}</b>
+          {% if item.tipo %}<br><span style="font-size: 8pt; color: #64748b;">Línea: {{ item.tipo|capitalize }}</span>{% endif %}
+        </td>
+        <td class="text-center">{{ item.cantidad }}</td>
+        <td class="text-right">${{ "{:,.2f}".format(item.precio_unitario) }}</td>
+        <td class="text-right"><b>${{ "{:,.2f}".format(item.subtotal) }}</b></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <table class="summary-section">
+    <tr>
+      <td class="notes-box">
+        <b>TÉRMINOS Y CONDICIONES COMERCIALES:</b><br>
+        1. <b>Forma de pago:</b> 50% anticipo al iniciar labores y 50% contra entrega a satisfacción.<br>
+        2. <b>Garantía:</b> 12 meses en equipos de fábrica y 6 meses sobre mano de obra de instalación.<br>
+        3. <b>Disponibilidad:</b> Sujeta a stock al momento de formalizar la orden de servicio.<br>
+        4. Los valores incluyen configuración técnica y pruebas de conectividad en sitio.
+      </td>
+      <td class="totals-box">
+        <table class="totals-table">
+          <tr>
+            <td style="color: #64748b;">Subtotal Neto:</td>
+            <td class="text-right">${{ "{:,.2f}".format(cotizacion.subtotal) }}</td>
+          </tr>
+          <tr>
+            <td style="color: #64748b;">Descuentos:</td>
+            <td class="text-right">$0.00</td>
+          </tr>
+          <tr>
+            <td class="total-highlight">TOTAL A PAGAR:</td>
+            <td class="text-right total-highlight">${{ "{:,.2f}".format(cotizacion.total) }} COP</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <div class="footer">
+    Documento emitido electrónicamente por la plataforma C&R Soluciones Tecnológicas.<br>
+    Para aceptar formalmente esta propuesta comuníquese al PBX +57 (601) 700 1122 o responda a través del portal de clientes.
+  </div>
+
+</body>
+</html>

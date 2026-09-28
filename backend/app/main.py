@@ -6,8 +6,10 @@ from app.routers import (
     catalogo,
     cotizaciones,
     ejemplo_uso,
+    finanzas,
     inventario,
     inventario_publico,
+    notificaciones,
     tickets,
     usuarios,
 )
@@ -22,6 +24,8 @@ app.include_router(inventario.router)
 app.include_router(catalogo.router)
 app.include_router(cotizaciones.router)
 app.include_router(tickets.router)
+app.include_router(finanzas.router)
+app.include_router(notificaciones.router)
 
 preparar_directorios()
 app.mount(RUTA_MEDIA, StaticFiles(directory=DIRECTORIO_MEDIA), name="media")
