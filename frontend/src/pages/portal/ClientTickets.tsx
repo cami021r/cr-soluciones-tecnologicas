@@ -23,15 +23,15 @@ export const ClientTickets: React.FC = () => {
 
   const fetchTickets = async () => {
     try {
-      const [resT, resE] = await Promise.all([
+      const [resT, resE] = await Promise.allSettled([
         api.get<Ticket[]>("/tickets/"),
-        api.get<Equipment[]>("/inventario/"),
+        api.get<Equipment[]>("/inventario/mis-equipos"),
       ]);
-      setTickets(resT.data || []);
-      setEquipments(resE.data || []);
+      if (resT.status === "fulfilled") setTickets(resT.value.data || []);
+      if (resE.status === "fulfilled") setEquipments(resE.value.data || []);
 
       if (selectedTicket) {
-        const updated = resT.data?.find((t) => t.id === selectedTicket.id);
+                const updated = (resT.status === "fulfilled" ? resT.value.data : [])?.find((t) => t.id === selectedTicket.id);
         if (updated) setSelectedTicket(updated);
       }
     } catch (e) {

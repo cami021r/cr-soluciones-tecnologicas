@@ -11,7 +11,7 @@ export const ClientEquipment: React.FC = () => {
   useEffect(() => {
     const fetchEquipment = async () => {
       try {
-        const res = await api.get<Equipment[]>("/inventario/");
+        const res = await api.get<Equipment[]>("/inventario/mis-equipos/");
         setEquipments(res.data || []);
       } catch (e) {
         console.error("Error al cargar inventario:", e);

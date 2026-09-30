@@ -7,6 +7,7 @@ from app.models.usuarios import Usuario
 from app.models.roles import Rol
 from app.models.refresh_token import RefreshToken
 from app.schemas.usuarios import UsuarioCrear, UsuarioRespuesta, LoginRequest, TokenRespuesta
+from app.core.dependencies import requiere_roles
 from app.core.security import (
     COOKIE_SECURE,
     hash_password,
@@ -20,6 +21,7 @@ from app.core.security import (
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
 NOMBRE_COOKIE_REFRESH = "refresh_token"
+solo_personal_interno = requiere_roles("Administrador", "Técnico")
 
 
 def _emitir_tokens(usuario: Usuario, db: Session, response: Response) -> TokenRespuesta:
@@ -49,7 +51,7 @@ def _emitir_tokens(usuario: Usuario, db: Session, response: Response) -> TokenRe
         path="/usuarios",
     )
 
-    return TokenRespuesta(access_token=access_token)
+    return TokenRespuesta(access_token=access_token, usuario=usuario)
 
 
 @router.post("/registro", response_model=UsuarioRespuesta, status_code=status.HTTP_201_CREATED)
@@ -135,6 +137,13 @@ def refrescar_token(
     db.commit()
 
     return _emitir_tokens(usuario, db, response)
+
+@router.get("/", response_model=list[UsuarioRespuesta])
+def listar_usuarios(
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(solo_personal_interno),
+):
+    return db.query(Usuario).filter(Usuario.eliminado_en.is_(None)).all() 
 
 
 @router.post("/logout")

@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+
 
 from app.core.almacenamiento import DIRECTORIO_MEDIA, RUTA_MEDIA, preparar_directorios
 from app.routers import (
@@ -15,6 +17,14 @@ from app.routers import (
 )
 
 app = FastAPI(title="C&R Soluciones Tecnológicas API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(usuarios.router)
 app.include_router(ejemplo_uso.router)

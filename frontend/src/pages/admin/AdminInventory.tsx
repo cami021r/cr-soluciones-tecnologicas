@@ -32,7 +32,7 @@ export const AdminInventory: React.FC = () => {
         api.get<Equipment[]>("/inventario/"),
         api.get<{ id: number; nombre: string }[]>("/inventario/categorias"),
       ]);
-      setEquipments(resE.data || []);
+      setEquipments(resE.data?.resultados || []);
       setCategories(resC.data || []);
     } catch (e) {
       console.error("Error al cargar inventario:", e);

@@ -2,6 +2,9 @@ import shutil
 import uuid
 from datetime import datetime, timezone
 
+from app.core.dependencies import requiere_roles, obtener_usuario_actual
+from app.models.cotizaciones import Cliente
+
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -100,6 +103,25 @@ def registrar_equipo(
     db.refresh(equipo)
     return equipo
 
+
+@router.get("/mis-equipos", response_model=list[EquipoRespuesta])
+def listar_mis_equipos(
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(obtener_usuario_actual),
+):
+    """Devuelve solo los equipos bajo contrato del cliente autenticado."""
+    cliente = db.query(Cliente).filter(Cliente.usuario_id == usuario.id).first()
+    if not cliente:
+        return []
+
+    equipos = (
+        db.query(Equipo)
+        .join(EquipoContrato, EquipoContrato.equipo_id == Equipo.id)
+        .join(Contrato, Contrato.id == EquipoContrato.contrato_id)
+        .filter(Contrato.cliente_id == cliente.id, Equipo.eliminado_en.is_(None))
+        .all()
+    )
+    return equipos
 
 @router.get("", response_model=EquipoPaginado)
 def listar_equipos(

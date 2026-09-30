@@ -1,5 +1,11 @@
 from pydantic import BaseModel, EmailStr, field_validator
 
+class RolRespuesta(BaseModel):
+    id: int
+    nombre: str
+
+    class Config:
+        from_attributes = True
 
 class UsuarioCrear(BaseModel):
     nombre: str
@@ -22,7 +28,7 @@ class UsuarioRespuesta(BaseModel):
     apellido: str
     email: str
     telefono: str | None
-    rol_id: int
+    rol: RolRespuesta
     activo: bool
 
     class Config:
@@ -37,3 +43,4 @@ class LoginRequest(BaseModel):
 class TokenRespuesta(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    usuario: UsuarioRespuesta
