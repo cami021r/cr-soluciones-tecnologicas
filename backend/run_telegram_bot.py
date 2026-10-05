@@ -16,6 +16,14 @@ import sys
 import time
 from pathlib import Path
 
+# Asegurar compatibilidad de consola en Windows con caracteres UTF-8
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 # Asegurar que el directorio raíz de backend esté en sys.path
 backend_dir = Path(__file__).resolve().parent
 if str(backend_dir) not in sys.path:
