@@ -29,10 +29,11 @@ export const AdminInventory: React.FC = () => {
   const fetchInventory = async () => {
     try {
       const [resE, resC] = await Promise.all([
-        api.get<Equipment[]>("/inventario/"),
+        api.get<any>("/inventario/"),
         api.get<{ id: number; nombre: string }[]>("/inventario/categorias"),
       ]);
-      setEquipments(resE.data?.resultados || []);
+      const dataEquipos = resE.data;
+      setEquipments(Array.isArray(dataEquipos) ? dataEquipos : (dataEquipos?.resultados || []));
       setCategories(resC.data || []);
     } catch (e) {
       console.error("Error al cargar inventario:", e);
