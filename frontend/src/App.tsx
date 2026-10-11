@@ -28,7 +28,7 @@ import AdminFinances from "./pages/admin/AdminFinances";
 
 // Layout para el sitio público con Navbar y Footer
 const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="flex flex-col min-h-screen bg-slate-950">
+  <div className="flex flex-col min-h-screen bg-white text-slate-900">
     <Navbar />
     <main className="flex-1">{children}</main>
     <Footer />

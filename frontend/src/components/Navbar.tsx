@@ -10,7 +10,6 @@ import {
   Wrench,
   Menu,
   X,
-  PhoneCall,
   Sparkles,
 } from "lucide-react";
 
@@ -25,39 +24,43 @@ export const Navbar: React.FC = () => {
   };
 
   const navLinks = [
-    { label: "Inicio", href: "#" },
-    { label: "¿Qué Hacemos?", href: "#que-hacemos" },
+    { label: "Inicio", href: "#", active: true },
+    { label: "Servicios", href: "#que-hacemos" },
     { label: "Misión & Visión", href: "#mision-vision" },
     { label: "Proyectos", href: "#proyectos" },
     { label: "Proveedores", href: "#proveedores" },
     { label: "Cotizador IA", href: "#cotizador-demo", highlight: true },
-    { label: "Contáctanos", href: "#contacto" },
+    { label: "Contacto", href: "#contacto" },
   ];
 
   return (
-    <nav className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 text-white">
+    <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100 text-slate-800 shadow-sm shadow-slate-100/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo / Brand */}
           <Logo size="md" />
 
           {/* Desktop Navigation Links */}
-          <div className="hidden lg:flex items-center gap-5 text-xs font-semibold text-slate-300">
+          <div className="hidden lg:flex items-center gap-7 text-sm font-semibold text-slate-600">
             {navLinks.map((link) =>
               link.highlight ? (
                 <a
                   key={link.label}
                   href={link.href}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20 transition-all font-bold"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-50 text-cyan-600 border border-cyan-200/80 hover:bg-cyan-100/80 transition-all font-bold"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-500 animate-pulse" />
                   {link.label}
                 </a>
               ) : (
                 <a
                   key={link.label}
                   href={link.href}
-                  className="hover:text-cyan-400 transition-colors py-1"
+                  className={`transition-colors py-1 relative ${
+                    link.active
+                      ? "text-sky-600 font-bold after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-sky-500 after:rounded-full"
+                      : "hover:text-sky-600"
+                  }`}
                 >
                   {link.label}
                 </a>
@@ -67,42 +70,33 @@ export const Navbar: React.FC = () => {
 
           {/* User Controls & Mobile Button */}
           <div className="flex items-center gap-3">
-            {/* Botón rápido Contáctanos (Desktop) */}
-            <a
-              href="#contacto"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-slate-800 hover:border-cyan-500/40 transition-all"
-            >
-              <PhoneCall className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Contáctanos</span>
-            </a>
-
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
                 {/* Botón hacia Dashboard según rol */}
                 {isAdmin || isTecnico ? (
                   <Link
                     to="/admin"
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 text-xs font-semibold border border-cyan-500/30 transition-all"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 text-xs font-semibold border border-sky-200 transition-all"
                   >
-                    <Wrench className="w-4 h-4" />
+                    <Wrench className="w-4 h-4 text-sky-600" />
                     <span className="hidden sm:inline">Panel</span> {isAdmin ? "Admin" : "Técnico"}
                   </Link>
                 ) : (
                   <Link
                     to="/portal"
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 text-xs font-semibold border border-blue-500/30 transition-all"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 text-xs font-semibold border border-sky-200 transition-all"
                   >
-                    <LayoutDashboard className="w-4 h-4" />
+                    <LayoutDashboard className="w-4 h-4 text-sky-600" />
                     Mi Portal
                   </Link>
                 )}
 
                 {/* Perfil & Logout */}
                 <div className="hidden md:flex flex-col text-right">
-                  <span className="text-xs font-semibold text-slate-200">
+                  <span className="text-xs font-bold text-slate-800">
                     {user?.nombre} {user?.apellido}
                   </span>
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider">
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
                     {user?.rol?.nombre}
                   </span>
                 </div>
@@ -110,23 +104,23 @@ export const Navbar: React.FC = () => {
                 <button
                   onClick={handleLogout}
                   title="Cerrar Sesión"
-                  className="p-2 rounded-xl bg-slate-900 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-slate-800 transition-colors"
+                  className="p-2 rounded-xl bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200 transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <Link
                   to="/login"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-sky-600 hover:bg-slate-50 transition-colors"
                 >
                   <LogIn className="w-4 h-4" />
-                  <span className="hidden sm:inline">Ingresar</span>
+                  <span>Ingresar</span>
                 </Link>
                 <Link
                   to="/registro"
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 shadow-md shadow-cyan-500/20 transition-all font-bold"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white shadow-md shadow-sky-500/20 transition-all transform hover:-translate-y-0.5"
                 >
                   <UserPlus className="w-4 h-4" />
                   <span>Registrarse</span>
@@ -137,10 +131,10 @@ export const Navbar: React.FC = () => {
             {/* Mobile Hamburger Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white focus:outline-none"
+              className="lg:hidden p-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 focus:outline-none"
               aria-label="Toggle menu"
             >
-              {mobileMenuOpen ? <X className="w-5 h-5 text-cyan-400" /> : <Menu className="w-5 h-5" />}
+              {mobileMenuOpen ? <X className="w-5 h-5 text-sky-600" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
@@ -148,7 +142,7 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-slate-950/95 border-b border-slate-800 px-4 pt-3 pb-6 space-y-2 backdrop-blur-lg">
+        <div className="lg:hidden bg-white border-b border-slate-200 px-4 pt-3 pb-6 space-y-2 shadow-lg">
           {navLinks.map((link) => (
             <a
               key={link.label}
@@ -156,8 +150,8 @@ export const Navbar: React.FC = () => {
               onClick={() => setMobileMenuOpen(false)}
               className={`block px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                 link.highlight
-                  ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30"
-                  : "text-slate-300 hover:bg-slate-900 hover:text-cyan-400"
+                  ? "bg-cyan-50 text-cyan-600 border border-cyan-200"
+                  : "text-slate-700 hover:bg-slate-50 hover:text-sky-600"
               }`}
             >
               {link.label}
@@ -167,9 +161,8 @@ export const Navbar: React.FC = () => {
             <a
               href="#contacto"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-bold bg-cyan-500 text-slate-950 shadow-md"
+              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-md"
             >
-              <PhoneCall className="w-4 h-4" />
               Contáctanos Ahora
             </a>
           </div>
