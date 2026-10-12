@@ -1,27 +1,25 @@
 import React from "react";
-import { Mail, Phone, MapPin, MessageCircle, ExternalLink, ShieldCheck } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Mail, MapPin, MessageCircle, ExternalLink, ShieldCheck } from "lucide-react";
 import { Logo } from "./Logo";
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="bg-slate-50 border-t border-slate-200 text-slate-600 text-sm relative overflow-hidden">
-      {/* Luz ambiental sutil en azul suave */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-24 bg-sky-200/40 blur-3xl pointer-events-none"></div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-10">
+    <footer className="bg-white/80 backdrop-blur-md border-t border-blue-100/70 text-slate-600 text-sm relative z-10 overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
           {/* Col 1 y 2: Identidad & Propósito */}
           <div className="lg:col-span-2 space-y-4">
             <Logo size="lg" />
             <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-sm pt-2">
-              Microempresa bogotana dedicada a la modernización de infraestructura TI, cableado estructurado, circuitos de seguridad CCTV, IoT y soporte técnico profesional para hogares, emprendedores y PYMEs.
+              Infraestructura TI profesional, cableado estructurado Cat6 certificado, videovigilancia CCTV, conmutación Wi-Fi 6 y soporte técnico para hogares, empresas y PYMEs en Bogotá.
             </p>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-slate-200 shadow-sm text-[11px] text-sky-700 font-medium">
-              <ShieldCheck className="w-4 h-4 text-sky-600" />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-blue-50/80 border border-blue-200/80 text-[11px] text-blue-700 font-semibold shadow-xs">
+              <ShieldCheck className="w-4 h-4 text-blue-600" />
               <span>Plataforma con Trazabilidad Digital & Códigos QR</span>
             </div>
-            <div className="text-[11px] text-slate-500 border-l-2 border-sky-500 pl-3 pt-1">
-              Proyecto de Grado para el Comité Evaluador del SENA (ADSO / Infraestructura).
+            <div className="text-[11px] text-slate-500 border-l-2 border-blue-500 pl-3 pt-1">
+              Proyecto SENA — Ficha 2834855 (ADSO) | Camila Andrea Quintero Roa
             </div>
           </div>
 
@@ -32,112 +30,107 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
-                <a href="#" className="hover:text-sky-600 transition-colors">
+                <Link to="/" className="hover:text-blue-600 transition-colors">
                   Inicio
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#que-hacemos" className="hover:text-sky-600 transition-colors">
-                  ¿Qué Hacemos?
-                </a>
+                <Link to="/servicios" className="hover:text-blue-600 transition-colors">
+                  Servicios Especializados
+                </Link>
               </li>
               <li>
-                <a href="#mision-vision" className="hover:text-sky-600 transition-colors">
+                <Link to="/mision-vision" className="hover:text-blue-600 transition-colors">
                   Misión & Visión
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#proyectos" className="hover:text-sky-600 transition-colors">
+                <Link to="/proyectos" className="hover:text-blue-600 transition-colors">
                   Proyectos Realizados
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#proveedores" className="hover:text-sky-600 transition-colors">
+                <Link to="/proveedores" className="hover:text-blue-600 transition-colors">
                   Marcas & Proveedores
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#cotizador-demo" className="text-sky-600 font-semibold hover:underline">
-                  Cotizador con IA
-                </a>
+                <Link to="/cotizador" className="text-blue-600 font-bold hover:underline">
+                  Cotizador Inteligente con IA
+                </Link>
+              </li>
+              <li>
+                <Link to="/contacto" className="hover:text-blue-600 transition-colors">
+                  Contacto & Ubicación
+                </Link>
               </li>
             </ul>
           </div>
 
-          {/* Col 4: Líneas Técnicas */}
+          {/* Col 4: Especialidades Técnicas */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-              Soluciones Especializadas
+              Soluciones
             </h4>
             <ul className="space-y-2 text-xs text-slate-600">
-              <li>Cableado Estructurado Cat6 / Cat6A</li>
-              <li>Videovigilancia CCTV IP 4K</li>
-              <li>Redes Wi-Fi 6 & Conmutación Ruijie</li>
-              <li>Seguridad Electrónica & Sensores IoT</li>
-              <li>Mantenimiento Preventivo / Correctivo</li>
-              <li>Garantías Digitales con Escaneo QR</li>
+              <li>Cableado Cat6 & Patch Panels Panduit</li>
+              <li>CCTV Hikvision / Dahua ColorVu</li>
+              <li>Wi-Fi 6 & Conmutación Ruijie Reyee</li>
+              <li>Mantenimiento Hardware y Servidores</li>
+              <li>Etiquetado y Trazabilidad con QR</li>
+              <li>Generación Formal de Cotizaciones PDF</li>
             </ul>
           </div>
 
-          {/* Col 5: Canales de Contacto Directo */}
+          {/* Col 5: Contacto Directo */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-              Contáctanos Directamente
+              Contacto Bogotá
             </h4>
-            <ul className="space-y-2.5 text-xs">
-              <li>
-                <a
-                  href="https://wa.me/573115389889?text=Hola%20C%26R%20Soluciones,%20estoy%20interesado%20en%20sus%20servicios%20tecnol%C3%B3gicos"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 transition-colors font-semibold"
-                >
-                  <MessageCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>WhatsApp: +57 311 538 9889</span>
-                  <ExternalLink className="w-3 h-3 ml-auto opacity-70" />
-                </a>
-              </li>
-              <li>
-                <a
-                  href="tel:+573115389889"
-                  className="flex items-center gap-2 hover:text-sky-600 transition-colors"
-                >
-                  <Phone className="w-4 h-4 text-sky-600 flex-shrink-0" />
-                  <span>Línea Móvil: +57 311 538 9889</span>
-                </a>
-              </li>
-              <li>
-                <a
-                  href="mailto:contacto@crsoluciones.com"
-                  className="flex items-center gap-2 hover:text-sky-600 transition-colors"
-                >
-                  <Mail className="w-4 h-4 text-sky-600 flex-shrink-0" />
-                  <span>contacto@crsoluciones.com</span>
-                </a>
-              </li>
-              <li className="flex items-start gap-2 pt-1 text-slate-500">
-                <MapPin className="w-4 h-4 text-sky-600 flex-shrink-0 mt-0.5" />
-                <span>Bogotá D.C., Colombia • Cobertura Metropolitana y Soporte Remoto Nacional</span>
-              </li>
-            </ul>
+            <div className="space-y-2.5 text-xs">
+              <a
+                href="https://wa.me/573115389889"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-2 text-slate-700 hover:text-emerald-600 font-medium transition-colors"
+              >
+                <MessageCircle className="w-4 h-4 text-emerald-500" />
+                <span>+57 311 538 9889 (WhatsApp)</span>
+              </a>
+
+              <a
+                href="mailto:contacto@crsoluciones.com"
+                className="flex items-center gap-2 text-slate-700 hover:text-blue-600 transition-colors"
+              >
+                <Mail className="w-4 h-4 text-blue-500" />
+                <span>contacto@crsoluciones.com</span>
+              </a>
+
+              <div className="flex items-start gap-2 text-slate-600">
+                <MapPin className="w-4 h-4 text-slate-400 mt-0.5" />
+                <span>Bogotá D.C., Colombia</span>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <Link
+                to="/contacto"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold transition-all"
+              >
+                <span>Agendar Asesoría</span>
+                <ExternalLink className="w-3 h-3" />
+              </Link>
+            </div>
           </div>
         </div>
 
-        {/* Barra Inferior de Derechos */}
-        <div className="pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-          <p>© {new Date().getFullYear()} C&R Soluciones Tecnológicas S.A.S. (CYRS). Todos los derechos reservados.</p>
-          <div className="flex items-center gap-4 text-slate-600">
-            <a href="#contacto" className="hover:text-sky-600 transition-colors">
-              Solicitar Cotización
-            </a>
+        {/* Barra Inferior */}
+        <div className="border-t border-slate-200/80 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+          <p>© {new Date().getFullYear()} C&R Soluciones Tecnológicas. Todos los derechos reservados.</p>
+          <div className="flex items-center gap-4 text-slate-500">
+            <span>SENA Ficha 2834855</span>
             <span>•</span>
-            <a href="/login" className="hover:text-sky-600 transition-colors">
-              Portal Clientes
-            </a>
-            <span>•</span>
-            <a href="/registro" className="hover:text-sky-600 transition-colors font-medium">
-              Registro Gratuito
-            </a>
+            <span>Bogotá, Colombia</span>
           </div>
         </div>
       </div>

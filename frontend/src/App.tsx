@@ -1,69 +1,96 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import Navbar from "./components/Navbar";
-import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
 
+// Layouts
+import PublicLayout from "./layouts/PublicLayout";
+import PanelLayout from "./layouts/PanelLayout";
+import AdminLayout from "./pages/admin/AdminLayout";
+
 // Public Pages
-import LandingPage from "./pages/public/LandingPage";
+import Home from "./pages/public/Home";
+import Services from "./pages/public/Services";
+import MissionVision from "./pages/public/MissionVision";
+import Projects from "./pages/public/Projects";
+import Providers from "./pages/public/Providers";
+import Contact from "./pages/public/Contact";
+import NotFound from "./pages/public/NotFound";
+
+// Auth Pages
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 
-// Client Portal Pages
-import PortalLayout from "./pages/portal/PortalLayout";
-import ClientDashboard from "./pages/portal/ClientDashboard";
-import ClientChatbot from "./pages/portal/ClientChatbot";
-import ClientQuotes from "./pages/portal/ClientQuotes";
-import ClientEquipment from "./pages/portal/ClientEquipment";
-import ClientTickets from "./pages/portal/ClientTickets";
+// Client Panel Pages (Tema Claro)
+import PanelDashboard from "./pages/panel/PanelDashboard";
+import PanelQuotes from "./pages/panel/PanelQuotes";
+import PanelProfile from "./pages/panel/PanelProfile";
+import PanelChatbot from "./pages/panel/PanelChatbot";
+import PanelEquipment from "./pages/panel/PanelEquipment";
+import PanelTickets from "./pages/panel/PanelTickets";
 
-// Admin Pages
-import AdminLayout from "./pages/admin/AdminLayout";
+// Admin & Technician Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminInventory from "./pages/admin/AdminInventory";
 import AdminCatalog from "./pages/admin/AdminCatalog";
 import AdminTickets from "./pages/admin/AdminTickets";
 import AdminFinances from "./pages/admin/AdminFinances";
 
-// Layout para el sitio público con Navbar y Footer
-const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="flex flex-col min-h-screen bg-white text-slate-900">
-    <Navbar />
-    <main className="flex-1">{children}</main>
-    <Footer />
-  </div>
-);
-
 export const App: React.FC = () => {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Zona 1: Sitio Público */}
-          <Route
-            path="/"
-            element={
-              <PublicLayout>
-                <LandingPage />
-              </PublicLayout>
-            }
-          />
+          {/* ======================================================== */}
+          {/* ZONA 1: SITIO PÚBLICO MULTIPÁGINA (Layout Compartido)    */}
+          {/* ======================================================== */}
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/servicios" element={<Services />} />
+            <Route path="/mision-vision" element={<MissionVision />} />
+            <Route path="/proyectos" element={<Projects />} />
+            <Route path="/proveedores" element={<Providers />} />
+            <Route path="/contacto" element={<Contact />} />
+          </Route>
+
+          {/* Autenticación (Login y Registro) */}
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Register />} />
 
-          {/* Zona 2: Portal Cliente (Protegido por Rol Cliente) */}
+          {/* Cotizador con IA: Protegido (requiere sesión, redirige a /login) */}
           <Route element={<ProtectedRoute allowedRoles={["Cliente", "Administrador", "Técnico"]} />}>
-            <Route path="/portal" element={<PortalLayout />}>
-              <Route index element={<ClientDashboard />} />
-              <Route path="cotizador" element={<ClientChatbot />} />
-              <Route path="cotizaciones" element={<ClientQuotes />} />
-              <Route path="equipos" element={<ClientEquipment />} />
-              <Route path="tickets" element={<ClientTickets />} />
-            </Route>
+            <Route
+              path="/cotizador"
+              element={
+                <PublicLayout>
+                  <div className="py-6 sm:py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+                    <PanelChatbot />
+                  </div>
+                </PublicLayout>
+              }
+            />
           </Route>
 
-          {/* Zona 3: Panel de Administración & Técnico (Protegido por Rol Administrador o Técnico) */}
+          {/* ======================================================== */}
+          {/* ZONA 2: ÁREA DEL CLIENTE (Panel Propio con Menú Lateral) */}
+          {/* ======================================================== */}
+          <Route element={<ProtectedRoute allowedRoles={["Cliente", "Administrador", "Técnico"]} />}>
+            <Route path="/panel" element={<PanelLayout />}>
+              <Route index element={<PanelDashboard />} />
+              <Route path="cotizaciones" element={<PanelQuotes />} />
+              <Route path="perfil" element={<PanelProfile />} />
+              <Route path="equipos" element={<PanelEquipment />} />
+              <Route path="tickets" element={<PanelTickets />} />
+            </Route>
+
+            {/* Redirección de compatibilidad para enlaces antiguos a /portal */}
+            <Route path="/portal" element={<Navigate to="/panel" replace />} />
+            <Route path="/portal/*" element={<Navigate to="/panel" replace />} />
+          </Route>
+
+          {/* ======================================================== */}
+          {/* ZONA 3: PANEL ADMINISTRADOR Y TÉCNICO                   */}
+          {/* ======================================================== */}
           <Route element={<ProtectedRoute allowedRoles={["Administrador", "Técnico"]} />}>
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
@@ -71,12 +98,19 @@ export const App: React.FC = () => {
               <Route path="catalogo" element={<AdminCatalog />} />
               <Route path="tickets" element={<AdminTickets />} />
               <Route path="finanzas" element={<AdminFinances />} />
-              <Route path="cotizaciones" element={<ClientQuotes />} />
+              <Route path="cotizaciones" element={<PanelQuotes />} />
             </Route>
           </Route>
 
-          {/* Ruta por defecto */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Página 404 No Encontrado */}
+          <Route
+            path="*"
+            element={
+              <PublicLayout>
+                <NotFound />
+              </PublicLayout>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
