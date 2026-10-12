@@ -35,6 +35,30 @@ class UsuarioRespuesta(BaseModel):
         from_attributes = True
 
 
+class UsuarioAdminCrear(BaseModel):
+    nombre: str
+    apellido: str
+    email: EmailStr
+    password: str
+    telefono: str | None = None
+    rol_id: int
+
+    @field_validator("password")
+    @classmethod
+    def password_segura(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("La contraseña debe tener al menos 8 caracteres")
+        return v
+
+
+class UsuarioActualizarRol(BaseModel):
+    rol_id: int
+
+
+class UsuarioActualizarEstado(BaseModel):
+    activo: bool
+
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str

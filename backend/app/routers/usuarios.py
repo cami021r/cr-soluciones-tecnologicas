@@ -6,7 +6,16 @@ from app.database import get_db
 from app.models.usuarios import Usuario
 from app.models.roles import Rol
 from app.models.refresh_token import RefreshToken
-from app.schemas.usuarios import UsuarioCrear, UsuarioRespuesta, LoginRequest, TokenRespuesta
+from app.schemas.usuarios import (
+    LoginRequest,
+    RolRespuesta,
+    TokenRespuesta,
+    UsuarioActualizarEstado,
+    UsuarioActualizarRol,
+    UsuarioAdminCrear,
+    UsuarioCrear,
+    UsuarioRespuesta,
+)
 from app.core.dependencies import requiere_roles
 from app.core.security import (
     COOKIE_SECURE,
@@ -22,6 +31,7 @@ router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
 NOMBRE_COOKIE_REFRESH = "refresh_token"
 solo_personal_interno = requiere_roles("Administrador", "Técnico")
+solo_administradores = requiere_roles("Administrador")
 
 
 def _emitir_tokens(usuario: Usuario, db: Session, response: Response) -> TokenRespuesta:
@@ -143,7 +153,89 @@ def listar_usuarios(
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(solo_personal_interno),
 ):
-    return db.query(Usuario).filter(Usuario.eliminado_en.is_(None)).all() 
+    return db.query(Usuario).filter(Usuario.eliminado_en.is_(None)).order_by(Usuario.id.asc()).all()
+
+
+@router.get("/roles", response_model=list[RolRespuesta])
+def listar_roles(
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(solo_personal_interno),
+):
+    """Devuelve el catálogo de roles del sistema."""
+    return db.query(Rol).order_by(Rol.id.asc()).all()
+
+
+@router.post("/admin-crear", response_model=UsuarioRespuesta, status_code=status.HTTP_201_CREATED)
+def admin_crear_usuario(
+    datos: UsuarioAdminCrear,
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(solo_administradores),
+):
+    """Permite al administrador crear usuarios asignando directamente cualquier rol (Técnico, Admin, Cliente)."""
+    rol = db.query(Rol).filter(Rol.id == datos.rol_id).first()
+    if not rol:
+        raise HTTPException(status_code=400, detail="El rol especificado no existe")
+
+    nuevo_usuario = Usuario(
+        nombre=datos.nombre.strip(),
+        apellido=datos.apellido.strip(),
+        email=datos.email.strip().lower(),
+        password_hash=hash_password(datos.password),
+        telefono=datos.telefono.strip() if datos.telefono else None,
+        rol_id=rol.id,
+    )
+    db.add(nuevo_usuario)
+    try:
+        db.commit()
+        db.refresh(nuevo_usuario)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Ese email ya está registrado")
+
+    return nuevo_usuario
+
+
+@router.patch("/{usuario_id}/rol", response_model=UsuarioRespuesta)
+def actualizar_rol_usuario(
+    usuario_id: int,
+    datos: UsuarioActualizarRol,
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(solo_administradores),
+):
+    """Permite al Administrador cambiar el rol de un usuario."""
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id, Usuario.eliminado_en.is_(None)).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    rol = db.query(Rol).filter(Rol.id == datos.rol_id).first()
+    if not rol:
+        raise HTTPException(status_code=400, detail="Rol inválido")
+
+    usuario.rol_id = rol.id
+    db.commit()
+    db.refresh(usuario)
+    return usuario
+
+
+@router.patch("/{usuario_id}/estado", response_model=UsuarioRespuesta)
+def actualizar_estado_usuario(
+    usuario_id: int,
+    datos: UsuarioActualizarEstado,
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(solo_administradores),
+):
+    """Permite al Administrador activar o desactivar un usuario."""
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id, Usuario.eliminado_en.is_(None)).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    if usuario.id == usuario_actual.id and not datos.activo:
+        raise HTTPException(status_code=400, detail="No puedes desactivar tu propia cuenta administradora")
+
+    usuario.activo = datos.activo
+    db.commit()
+    db.refresh(usuario)
+    return usuario 
 
 
 @router.post("/logout")

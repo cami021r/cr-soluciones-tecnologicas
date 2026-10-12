@@ -191,7 +191,11 @@ def listar_tickets(
     """
     query = (
         db.query(Ticket)
-        .options(joinedload(Ticket.tecnico))
+        .options(
+            joinedload(Ticket.tecnico),
+            joinedload(Ticket.cliente).joinedload(Cliente.usuario),
+            joinedload(Ticket.equipo),
+        )
         .filter(Ticket.eliminado_en.is_(None))
     )
 
@@ -222,14 +226,22 @@ def listar_tickets(
     items = []
     for t in tickets:
         sla_h = SLA_HORAS.get(t.prioridad, 24)
+        c_user = t.cliente.usuario if t.cliente else None
+        eq = t.equipo
         items.append(
             TicketListadoItem(
                 id=t.id,
                 cliente_id=t.cliente_id,
+                cliente_nombre=c_user.nombre_completo if c_user else "Cliente",
+                cliente_email=c_user.email if c_user else None,
+                cliente_telefono=c_user.telefono or (t.cliente.telefono_alt if t.cliente else None),
+                cliente_empresa=t.cliente.nombre_empresa if t.cliente else None,
                 equipo_id=t.equipo_id,
+                equipo_nombre=f"{eq.marca} {eq.modelo} ({eq.codigo})" if eq else None,
                 tecnico_id=t.tecnico_id,
                 tecnico_nombre=t.tecnico.nombre_completo if t.tecnico else None,
                 titulo=t.titulo,
+                descripcion=t.descripcion,
                 prioridad=t.prioridad,
                 estado=t.estado,
                 creado_en=t.creado_en,
@@ -254,8 +266,10 @@ def obtener_ticket(
     ticket = (
         db.query(Ticket)
         .options(
-            joinedload(Ticket.comentarios).joinedload(ComentarioTicket.usuario),
+            joinedload(Ticket.comentarios).joinedload(ComentarioTicket.usuario).joinedload(Usuario.rol),
             joinedload(Ticket.tecnico),
+            joinedload(Ticket.cliente).joinedload(Cliente.usuario),
+            joinedload(Ticket.equipo),
         )
         .filter(Ticket.id == ticket_id, Ticket.eliminado_en.is_(None))
         .first()
@@ -291,6 +305,7 @@ def obtener_ticket(
 def agregar_comentario(
     ticket_id: int,
     datos: ComentarioCrear,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual),
 ):
@@ -327,6 +342,21 @@ def agregar_comentario(
     db.commit()
     db.refresh(comentario)
 
+    # Si el comentario es público, notificar en tiempo real por Telegram
+    if not comentario.es_interno:
+        background_tasks.add_task(
+            ejecutar_tarea_notificacion_asincrona,
+            tipo_evento="nuevo_comentario_ticket",
+            datos={
+                "ticket_id": ticket.id,
+                "titulo": ticket.titulo,
+                "remitente_nombre": usuario_actual.nombre_completo,
+                "remitente_rol": usuario_actual.rol.nombre,
+                "contenido": comentario.contenido[:200],
+            },
+            usuario_id=usuario_actual.id,
+        )
+
     return ComentarioRespuesta(
         id=comentario.id,
         ticket_id=comentario.ticket_id,
@@ -347,6 +377,7 @@ def agregar_comentario(
 def cambiar_estado_ticket(
     ticket_id: int,
     datos: TicketCambiarEstado,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(solo_personal_tecnico),
 ):
@@ -378,6 +409,20 @@ def cambiar_estado_ticket(
 
     db.commit()
     db.refresh(ticket)
+
+    # Notificar cambio de estado vía Telegram
+    background_tasks.add_task(
+        ejecutar_tarea_notificacion_asincrona,
+        tipo_evento="cambio_estado_ticket",
+        datos={
+            "ticket_id": ticket.id,
+            "nuevo_estado": datos.estado_nuevo,
+            "usuario_nombre": usuario_actual.nombre_completo,
+            "diagnostico": datos.observacion or "Actualización de avance de soporte",
+        },
+        usuario_id=usuario_actual.id,
+    )
+
     return _construir_respuesta_ticket(ticket, usuario_actual)
 
 
@@ -512,12 +557,20 @@ def _construir_respuesta_ticket(ticket: Ticket, usuario_actual: Usuario) -> Tick
         )
 
     sla_h = SLA_HORAS.get(ticket.prioridad, 24)
+    c_user = ticket.cliente.usuario if ticket.cliente else None
+    eq = ticket.equipo
 
     return TicketRespuesta(
         id=ticket.id,
         cliente_id=ticket.cliente_id,
+        cliente_nombre=c_user.nombre_completo if c_user else "Cliente",
+        cliente_email=c_user.email if c_user else None,
+        cliente_telefono=c_user.telefono or (ticket.cliente.telefono_alt if ticket.cliente else None),
+        cliente_empresa=ticket.cliente.nombre_empresa if ticket.cliente else None,
         equipo_id=ticket.equipo_id,
+        equipo_nombre=f"{eq.marca} {eq.modelo} ({eq.codigo})" if eq else None,
         tecnico_id=ticket.tecnico_id,
+        tecnico_nombre=ticket.tecnico.nombre_completo if ticket.tecnico else None,
         titulo=ticket.titulo,
         descripcion=ticket.descripcion,
         prioridad=ticket.prioridad,

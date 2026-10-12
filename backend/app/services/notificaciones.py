@@ -51,6 +51,15 @@ def formatear_plantilla_alerta(tipo_evento: str, datos: dict[str, Any]) -> str:
             f"• <b>Nota:</b> {datos.get('diagnostico', 'Actualización de avance')}"
         )
 
+    elif tipo_evento == "nuevo_comentario_ticket":
+        return (
+            f"💬 <b>NUEVO MENSAJE EN TICKET #{datos.get('ticket_id')}</b>\n"
+            f"• <b>Ticket:</b> {datos.get('titulo', 'Sin título')}\n"
+            f"• <b>Autor:</b> {datos.get('remitente_nombre', 'Usuario')} ({datos.get('remitente_rol', 'Cliente')})\n"
+            f"• <b>Mensaje:</b> <i>\"{datos.get('contenido', '')}\"</i>\n"
+            f"• <b>Hora:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        )
+
     elif tipo_evento == "contrato_por_vencer":
         return (
             f"⚠️ <b>ALERTA: CONTRATO PRÓXIMO A VENCER</b>\n"

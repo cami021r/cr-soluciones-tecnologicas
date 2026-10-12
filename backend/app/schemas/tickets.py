@@ -61,8 +61,14 @@ class TicketCambiarEstado(BaseModel):
 class TicketRespuesta(BaseModel):
     id: int
     cliente_id: int
+    cliente_nombre: str | None = None
+    cliente_email: str | None = None
+    cliente_telefono: str | None = None
+    cliente_empresa: str | None = None
     equipo_id: int | None = None
+    equipo_nombre: str | None = None
     tecnico_id: int | None = None
+    tecnico_nombre: str | None = None
     titulo: str
     descripcion: str
     prioridad: PrioridadTicket
@@ -80,10 +86,16 @@ class TicketListadoItem(BaseModel):
     """Respuesta compacta para listados de mesa de ayuda."""
     id: int
     cliente_id: int
+    cliente_nombre: str | None = None
+    cliente_email: str | None = None
+    cliente_telefono: str | None = None
+    cliente_empresa: str | None = None
     equipo_id: int | None = None
+    equipo_nombre: str | None = None
     tecnico_id: int | None = None
     tecnico_nombre: str | None = None
     titulo: str
+    descripcion: str | None = None
     prioridad: PrioridadTicket
     estado: EstadoTicket
     creado_en: datetime
