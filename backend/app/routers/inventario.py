@@ -104,24 +104,47 @@ def registrar_equipo(
     return equipo
 
 
+def _construir_equipo_respuesta(e: Equipo) -> EquipoRespuesta:
+    c_user = e.cliente.usuario if e.cliente else None
+    return EquipoRespuesta(
+        id=e.id,
+        categoria_id=e.categoria_id,
+        categoria_nombre=e.categoria.nombre if e.categoria else None,
+        numero_serie=e.numero_serie,
+        marca=e.marca,
+        modelo=e.modelo,
+        descripcion=e.descripcion,
+        estado=e.estado,
+        fecha_compra=e.fecha_compra,
+        garantia_hasta=e.garantia_hasta,
+        cliente_id=e.cliente_id,
+        cliente_nombre=c_user.nombre_completo if c_user else None,
+        cliente_empresa=e.cliente.nombre_empresa if e.cliente else None,
+        tipo_relacion=e.tipo_relacion or "empresa",
+        qr_codigo=e.qr_codigo,
+        creado_en=e.creado_en,
+        fotos=[FotoRespuesta.model_validate(f) for f in (e.fotos or [])],
+        movimientos=[MovimientoRespuesta.model_validate(m) for m in (e.movimientos or [])],
+    )
+
+
 @router.get("/mis-equipos", response_model=list[EquipoRespuesta])
 def listar_mis_equipos(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(obtener_usuario_actual),
 ):
-    """Devuelve solo los equipos bajo contrato del cliente autenticado."""
+    """Devuelve los equipos vinculados directamente o bajo contrato del cliente autenticado."""
     cliente = db.query(Cliente).filter(Cliente.usuario_id == usuario.id).first()
     if not cliente:
         return []
 
     equipos = (
         db.query(Equipo)
-        .join(EquipoContrato, EquipoContrato.equipo_id == Equipo.id)
-        .join(Contrato, Contrato.id == EquipoContrato.contrato_id)
-        .filter(Contrato.cliente_id == cliente.id, Equipo.eliminado_en.is_(None))
+        .filter(Equipo.cliente_id == cliente.id, Equipo.eliminado_en.is_(None))
         .all()
     )
-    return equipos
+    return [_construir_equipo_respuesta(e) for e in equipos]
+
 
 @router.get("", response_model=EquipoPaginado)
 def listar_equipos(
@@ -129,25 +152,35 @@ def listar_equipos(
     usuario: Usuario = Depends(solo_tecnicos),
     estado: str | None = Query(default=None),
     categoria_id: int | None = Query(default=None),
-    cliente_id: int | None = Query(default=None, description="Equipos bajo contrato del cliente"),
+    cliente_id: int | None = Query(default=None, description="Filtrar por cliente"),
+    segmento: str | None = Query(default=None, description="'empresa' para stock propio, 'cliente' para asignados a clientes"),
+    tipo_relacion: str | None = Query(default=None, description="'empresa', 'venta', 'arriendo'"),
     buscar: str | None = Query(default=None, description="Marca, modelo o número de serie"),
     pagina: int = Query(default=1, ge=1),
-    por_pagina: int = Query(default=20, ge=1, le=100),
+    por_pagina: int = Query(default=50, ge=1, le=100),
 ):
     consulta = db.query(Equipo).filter(Equipo.eliminado_en.is_(None))
 
+    if segmento == "empresa":
+        consulta = consulta.filter(
+            (Equipo.cliente_id.is_(None)) | (Equipo.tipo_relacion == "empresa")
+        )
+    elif segmento == "cliente":
+        consulta = consulta.filter(
+            Equipo.cliente_id.is_not(None),
+            Equipo.tipo_relacion.in_(["venta", "arriendo"]),
+        )
+
+    if tipo_relacion is not None:
+        consulta = consulta.filter(Equipo.tipo_relacion == tipo_relacion)
     if estado is not None:
         consulta = consulta.filter(Equipo.estado == estado)
     if categoria_id is not None:
         consulta = consulta.filter(Equipo.categoria_id == categoria_id)
     if cliente_id is not None:
-        consulta = (
-            consulta.join(EquipoContrato, EquipoContrato.equipo_id == Equipo.id)
-            .join(Contrato, Contrato.id == EquipoContrato.contrato_id)
-            .filter(Contrato.cliente_id == cliente_id, Contrato.eliminado_en.is_(None))
-        )
+        consulta = consulta.filter(Equipo.cliente_id == cliente_id)
     if buscar:
-        patron = f"%{buscar}%"
+        patron = f"%{buscar.strip()}%"
         consulta = consulta.filter(
             Equipo.marca.like(patron)
             | Equipo.modelo.like(patron)
@@ -165,7 +198,7 @@ def listar_equipos(
         total=total,
         pagina=pagina,
         por_pagina=por_pagina,
-        resultados=[EquipoRespuesta.model_validate(e) for e in resultados],
+        resultados=[_construir_equipo_respuesta(e) for e in resultados],
     )
 
 
@@ -175,7 +208,7 @@ def detalle_equipo(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(solo_tecnicos),
 ):
-    return obtener_equipo(db, equipo_id)
+    return _construir_equipo_respuesta(obtener_equipo(db, equipo_id))
 
 
 @router.patch("/{equipo_id}", response_model=EquipoRespuesta)
@@ -186,11 +219,30 @@ def actualizar_equipo(
     usuario: Usuario = Depends(solo_tecnicos),
 ):
     equipo = obtener_equipo(db, equipo_id)
+    estado_anterior = equipo.estado
+    campos_modificados = []
+
     for campo, valor in datos.model_dump(exclude_unset=True).items():
-        setattr(equipo, campo, valor)
+        if campo == "observacion_cambio":
+            continue
+        if getattr(equipo, campo) != valor:
+            campos_modificados.append(f"{campo}: {getattr(equipo, campo)} -> {valor}")
+            setattr(equipo, campo, valor)
+
+    if campos_modificados:
+        obs = datos.observacion_cambio or f"Actualización: {', '.join(campos_modificados)}"
+        mov = MovimientoEquipo(
+            equipo_id=equipo.id,
+            usuario_id=usuario.id,
+            estado_anterior=estado_anterior,
+            estado_nuevo=equipo.estado,
+            observacion=obs,
+        )
+        db.add(mov)
+
     db.commit()
     db.refresh(equipo)
-    return equipo
+    return _construir_equipo_respuesta(equipo)
 
 
 @router.patch("/{equipo_id}/estado", response_model=EquipoRespuesta)

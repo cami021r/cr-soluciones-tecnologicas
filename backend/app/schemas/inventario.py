@@ -24,6 +24,8 @@ class EquipoCrear(BaseModel):
     estado: EstadoEquipo = "disponible"
     fecha_compra: date | None = None
     garantia_hasta: date | None = None
+    cliente_id: int | None = None
+    tipo_relacion: str | None = "empresa"
 
 
 class EquipoActualizar(BaseModel):
@@ -31,8 +33,12 @@ class EquipoActualizar(BaseModel):
     marca: str | None = None
     modelo: str | None = None
     descripcion: str | None = None
+    estado: EstadoEquipo | None = None
     fecha_compra: date | None = None
     garantia_hasta: date | None = None
+    cliente_id: int | None = None
+    tipo_relacion: str | None = None
+    observacion_cambio: str | None = None
 
 
 class CambioEstado(BaseModel):
@@ -64,6 +70,7 @@ class MovimientoRespuesta(BaseModel):
 class EquipoRespuesta(BaseModel):
     id: int
     categoria_id: int
+    categoria_nombre: str | None = None
     numero_serie: str
     marca: str
     modelo: str
@@ -71,9 +78,14 @@ class EquipoRespuesta(BaseModel):
     estado: EstadoEquipo
     fecha_compra: date | None
     garantia_hasta: date | None
+    cliente_id: int | None = None
+    cliente_nombre: str | None = None
+    cliente_empresa: str | None = None
+    tipo_relacion: str | None = "empresa"
     qr_codigo: str | None
     creado_en: datetime | None
     fotos: list[FotoRespuesta] = []
+    movimientos: list[MovimientoRespuesta] = []
 
     class Config:
         from_attributes = True

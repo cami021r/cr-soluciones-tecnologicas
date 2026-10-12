@@ -45,10 +45,14 @@ class Equipo(Base):
     # Ruta del PNG del QR generado al registrar el equipo
     qr_codigo = Column(String(255), nullable=True)
 
+    cliente_id = Column(Integer, ForeignKey("clientes.id"), nullable=True, index=True)
+    tipo_relacion = Column(String(50), nullable=True, default="empresa")
+
     creado_en = Column(DateTime(timezone=True), server_default=func.now())
     eliminado_en = Column(DateTime(timezone=True), nullable=True)  # Soft delete
 
     categoria = relationship("CategoriaEquipo", back_populates="equipos")
+    cliente = relationship("Cliente")
     fotos = relationship("FotoEquipo", back_populates="equipo")
     movimientos = relationship("MovimientoEquipo", back_populates="equipo")
 

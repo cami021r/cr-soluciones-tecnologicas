@@ -31,6 +31,7 @@ import PanelTickets from "./pages/panel/PanelTickets";
 
 // Admin & Technician Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminClients from "./pages/admin/AdminClients";
 import AdminInventory from "./pages/admin/AdminInventory";
 import AdminCatalog from "./pages/admin/AdminCatalog";
 import AdminTickets from "./pages/admin/AdminTickets";
@@ -94,11 +95,16 @@ export const App: React.FC = () => {
           <Route element={<ProtectedRoute allowedRoles={["Administrador", "Técnico"]} />}>
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
+              <Route path="clientes" element={<AdminClients />} />
               <Route path="inventario" element={<AdminInventory />} />
-              <Route path="catalogo" element={<AdminCatalog />} />
               <Route path="tickets" element={<AdminTickets />} />
-              <Route path="finanzas" element={<AdminFinances />} />
               <Route path="cotizaciones" element={<PanelQuotes />} />
+
+              {/* Rutas con acceso restringido exclusivo para Administrador */}
+              <Route element={<ProtectedRoute allowedRoles={["Administrador"]} />}>
+                <Route path="catalogo" element={<AdminCatalog />} />
+                <Route path="finanzas" element={<AdminFinances />} />
+              </Route>
             </Route>
           </Route>
 

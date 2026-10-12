@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.almacenamiento import DIRECTORIO_MEDIA, RUTA_MEDIA, preparar_directorios
 from app.routers import (
     catalogo,
+    clientes,
     cotizaciones,
     ejemplo_uso,
     finanzas,
@@ -31,6 +32,7 @@ app.include_router(ejemplo_uso.router)
 # El router público va primero: /inventario/publico/{id} no debe caer en /inventario/{equipo_id}
 app.include_router(inventario_publico.router)
 app.include_router(inventario.router)
+app.include_router(clientes.router)
 app.include_router(catalogo.router)
 app.include_router(cotizaciones.router)
 app.include_router(tickets.router)

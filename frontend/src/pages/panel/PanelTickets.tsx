@@ -45,7 +45,11 @@ export const PanelTickets: React.FC = () => {
 
   useEffect(() => {
     fetchTickets();
-  }, []);
+    const interval = setInterval(() => {
+      fetchTickets();
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [selectedTicket?.id]);
 
   const handleCrearTicket = async (e: React.FormEvent) => {
     e.preventDefault();

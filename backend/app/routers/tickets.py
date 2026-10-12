@@ -130,6 +130,9 @@ def crear_ticket(
         titulo=datos.titulo.strip(),
         descripcion=datos.descripcion.strip(),
         prioridad=datos.prioridad,
+        categoria=datos.categoria or "red",
+        modalidad=datos.modalidad or "remota",
+        fecha_visita=datos.fecha_visita,
         estado="abierto",
     )
     db.add(nuevo_ticket)
@@ -178,16 +181,15 @@ def crear_ticket(
 def listar_tickets(
     estado: str | None = Query(default=None, description="Filtrar por estado"),
     prioridad: str | None = Query(default=None, description="Filtrar por prioridad"),
+    categoria: str | None = Query(default=None, description="Filtrar por categoría (software, hardware, red, cctv)"),
     tecnico_id: int | None = Query(default=None, description="Filtrar por técnico asignado"),
+    cliente_id: int | None = Query(default=None, description="Filtrar por cliente"),
+    buscar: str | None = Query(default=None, description="Buscar por título o descripción"),
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual),
 ):
     """
-    Lista tickets ordenados estrictamente por SLA de atención:
-    1. Prioridad Alta (SLA 8h)
-    2. Prioridad Media (SLA 24h)
-    3. Prioridad Baja (SLA 48h)
-    Y secundariamente por fecha de creación (los más antiguos primero).
+    Lista tickets con filtros avanzados y ordenados por SLA de atención.
     """
     query = (
         db.query(Ticket)
@@ -205,13 +207,23 @@ def listar_tickets(
         if not cliente:
             return []
         query = query.filter(Ticket.cliente_id == cliente.id)
-    elif tecnico_id is not None:
-        query = query.filter(Ticket.tecnico_id == tecnico_id)
+    else:
+        if cliente_id is not None:
+            query = query.filter(Ticket.cliente_id == cliente_id)
+        if tecnico_id is not None:
+            query = query.filter(Ticket.tecnico_id == tecnico_id)
 
+    if categoria:
+        query = query.filter(Ticket.categoria == categoria)
     if estado:
         query = query.filter(Ticket.estado == estado)
     if prioridad:
         query = query.filter(Ticket.prioridad == prioridad)
+    if buscar:
+        patron = f"%{buscar.strip()}%"
+        query = query.filter(
+            Ticket.titulo.like(patron) | Ticket.descripcion.like(patron)
+        )
 
     # Ordenamiento avanzado por urgencia de SLA
     orden_sla = case(
@@ -221,7 +233,7 @@ def listar_tickets(
         else_=4,
     )
 
-    tickets = query.order_by(orden_sla.asc(), Ticket.creado_en.asc()).all()
+    tickets = query.order_by(orden_sla.asc(), Ticket.creado_en.desc()).all()
 
     items = []
     for t in tickets:
@@ -237,13 +249,16 @@ def listar_tickets(
                 cliente_telefono=c_user.telefono or (t.cliente.telefono_alt if t.cliente else None),
                 cliente_empresa=t.cliente.nombre_empresa if t.cliente else None,
                 equipo_id=t.equipo_id,
-                equipo_nombre=f"{eq.marca} {eq.modelo} ({eq.codigo})" if eq else None,
+                equipo_nombre=f"{eq.marca} {eq.modelo}" if eq else None,
                 tecnico_id=t.tecnico_id,
                 tecnico_nombre=t.tecnico.nombre_completo if t.tecnico else None,
                 titulo=t.titulo,
                 descripcion=t.descripcion,
                 prioridad=t.prioridad,
                 estado=t.estado,
+                categoria=t.categoria or "red",
+                modalidad=t.modalidad or "remota",
+                fecha_visita=t.fecha_visita,
                 creado_en=t.creado_en,
                 cerrado_en=t.cerrado_en,
                 sla_limite_horas=sla_h,
@@ -568,15 +583,45 @@ def _construir_respuesta_ticket(ticket: Ticket, usuario_actual: Usuario) -> Tick
         cliente_telefono=c_user.telefono or (ticket.cliente.telefono_alt if ticket.cliente else None),
         cliente_empresa=ticket.cliente.nombre_empresa if ticket.cliente else None,
         equipo_id=ticket.equipo_id,
-        equipo_nombre=f"{eq.marca} {eq.modelo} ({eq.codigo})" if eq else None,
+        equipo_nombre=f"{eq.marca} {eq.modelo}" if eq else None,
         tecnico_id=ticket.tecnico_id,
         tecnico_nombre=ticket.tecnico.nombre_completo if ticket.tecnico else None,
         titulo=ticket.titulo,
         descripcion=ticket.descripcion,
         prioridad=ticket.prioridad,
         estado=ticket.estado,
+        categoria=ticket.categoria or "red",
+        modalidad=ticket.modalidad or "remota",
+        fecha_visita=ticket.fecha_visita,
         creado_en=ticket.creado_en,
         cerrado_en=ticket.cerrado_en,
         sla_limite_horas=sla_h,
         comentarios=comentarios_filtrados,
     )
+
+
+@router.patch(
+    "/{ticket_id}",
+    response_model=TicketRespuesta,
+    summary="Actualizar datos y clasificación del ticket (categoría, modalidad, visita)",
+)
+def actualizar_ticket_datos(
+    ticket_id: int,
+    datos: TicketActualizar,
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(solo_personal_tecnico),
+):
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id, Ticket.eliminado_en.is_(None)).first()
+    if not ticket:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Ticket con ID {ticket_id} no encontrado",
+        )
+
+    for campo, valor in datos.model_dump(exclude_unset=True).items():
+        if valor is not None:
+            setattr(ticket, campo, valor)
+
+    db.commit()
+    db.refresh(ticket)
+    return _construir_respuesta_ticket(ticket, usuario_actual)

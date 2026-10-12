@@ -39,6 +39,9 @@ class Ticket(Base):
         nullable=False,
         default="abierto",
     )
+    categoria = Column(String(50), nullable=True, default="red")
+    modalidad = Column(String(50), nullable=True, default="remota")
+    fecha_visita = Column(DateTime(timezone=True), nullable=True)
 
     creado_en = Column(DateTime(timezone=True), server_default=func.now())
     cerrado_en = Column(DateTime(timezone=True), nullable=True)

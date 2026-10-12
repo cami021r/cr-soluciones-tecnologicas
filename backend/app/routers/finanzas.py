@@ -1,4 +1,4 @@
-﻿from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Literal
 
@@ -37,7 +37,7 @@ from app.services.finanzas import (
 router = APIRouter(prefix="/finanzas", tags=["Motor Financiero y Métricas"])
 
 solo_admin = requiere_roles("Administrador")
-personal_autorizado = requiere_roles("Administrador", "Técnico")
+personal_autorizado = requiere_roles("Administrador")
 
 
 # ===========================================================================

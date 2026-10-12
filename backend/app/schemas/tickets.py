@@ -43,6 +43,9 @@ class TicketCrear(BaseModel):
     titulo: str = Field(..., min_length=3, max_length=200)
     descripcion: str = Field(..., min_length=5)
     prioridad: PrioridadTicket = "media"
+    categoria: str | None = Field(default="red", description="software, hardware, red, cctv")
+    modalidad: str | None = Field(default="remota", description="remota o presencial")
+    fecha_visita: datetime | None = None
     equipo_id: int | None = Field(default=None, description="ID del equipo del inventario reportado (opcional)")
 
 
@@ -50,6 +53,9 @@ class TicketActualizar(BaseModel):
     titulo: str | None = Field(default=None, min_length=3, max_length=200)
     descripcion: str | None = None
     prioridad: PrioridadTicket | None = None
+    categoria: str | None = None
+    modalidad: str | None = None
+    fecha_visita: datetime | None = None
     tecnico_id: int | None = None
 
 
@@ -73,6 +79,9 @@ class TicketRespuesta(BaseModel):
     descripcion: str
     prioridad: PrioridadTicket
     estado: EstadoTicket
+    categoria: str | None = "red"
+    modalidad: str | None = "remota"
+    fecha_visita: datetime | None = None
     creado_en: datetime
     cerrado_en: datetime | None = None
     sla_limite_horas: int = 24
@@ -98,6 +107,9 @@ class TicketListadoItem(BaseModel):
     descripcion: str | None = None
     prioridad: PrioridadTicket
     estado: EstadoTicket
+    categoria: str | None = "red"
+    modalidad: str | None = "remota"
+    fecha_visita: datetime | None = None
     creado_en: datetime
     cerrado_en: datetime | None = None
     sla_limite_horas: int = 24
