@@ -1,4 +1,4 @@
-﻿from datetime import date, datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 # --- CATEGORÍAS FINANCIERAS ---
 class CategoriaFinancieraBase(BaseModel):
     nombre: str = Field(..., max_length=100)
-    tipo: Literal["ingreso", "gasto"]
+    tipo: Literal["ingreso", "gasto", "inversion"]
     descripcion: str | None = Field(None, max_length=200)
 
 
@@ -26,7 +26,7 @@ class TransaccionFinancieraBase(BaseModel):
     cotizacion_id: int | None = None
     descripcion: str = Field(..., max_length=300)
     monto: Decimal = Field(..., gt=0)
-    tipo: Literal["ingreso", "gasto"]
+    tipo: Literal["ingreso", "gasto", "inversion"]
     es_fijo: bool = False
     fecha: date = Field(default_factory=date.today)
 
@@ -41,6 +41,34 @@ class TransaccionFinancieraRespuesta(TransaccionFinancieraBase):
     categoria_nombre: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# --- FASE 4: INDICADORES FINANCIEROS Y RENTABILIDAD ---
+class GananciaItem(BaseModel):
+    id: int
+    nombre: str
+    tipo: str  # "servicio" | "producto"
+    precio_venta: Decimal
+    costo: Decimal
+    ganancia_unitaria: Decimal
+    margen_porcentaje: float
+    unidades_vendidas: int = 0
+    ganancia_total_generada: Decimal = Decimal("0.00")
+
+
+class MetricasFinancierasAvanzadas(BaseModel):
+    periodo: str
+    ingresos_verificados: Decimal
+    posible_venta: Decimal
+    gastos_operativos: Decimal
+    inversion_total: Decimal
+    ganancia_neta: Decimal
+    margen_promedio_comercial: float
+    cantidad_proyectos_concretados: int
+    cantidad_cotizaciones_en_curso: int
+    ganancias_por_servicio: list[GananciaItem]
+    ganancias_por_producto: list[GananciaItem]
+    flujo_comparativo: list[dict]
 
 
 # --- CONTRATOS ---

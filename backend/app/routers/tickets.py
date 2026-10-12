@@ -197,12 +197,14 @@ def listar_tickets(
             joinedload(Ticket.tecnico),
             joinedload(Ticket.cliente).joinedload(Cliente.usuario),
             joinedload(Ticket.equipo),
+            joinedload(Ticket.comentarios).joinedload(ComentarioTicket.usuario).joinedload(Usuario.rol),
         )
         .filter(Ticket.eliminado_en.is_(None))
     )
 
     # Control de acceso según rol
-    if usuario_actual.rol.nombre == "Cliente":
+    es_cliente = usuario_actual.rol.nombre == "Cliente"
+    if es_cliente:
         cliente = db.query(Cliente).filter(Cliente.usuario_id == usuario_actual.id).first()
         if not cliente:
             return []
@@ -240,6 +242,22 @@ def listar_tickets(
         sla_h = SLA_HORAS.get(t.prioridad, 24)
         c_user = t.cliente.usuario if t.cliente else None
         eq = t.equipo
+
+        comentarios_filtrados = [
+            ComentarioRespuesta(
+                id=c.id,
+                ticket_id=c.ticket_id,
+                usuario_id=c.usuario_id,
+                usuario_nombre=c.usuario.nombre_completo if c.usuario else "Usuario",
+                usuario_rol=c.usuario.rol.nombre if c.usuario and c.usuario.rol else "Usuario",
+                contenido=c.contenido,
+                es_interno=c.es_interno,
+                creado_en=c.creado_en,
+            )
+            for c in (t.comentarios or [])
+            if not (es_cliente and c.es_interno)
+        ]
+
         items.append(
             TicketListadoItem(
                 id=t.id,
@@ -262,6 +280,7 @@ def listar_tickets(
                 creado_en=t.creado_en,
                 cerrado_en=t.cerrado_en,
                 sla_limite_horas=sla_h,
+                comentarios=comentarios_filtrados,
             )
         )
     return items

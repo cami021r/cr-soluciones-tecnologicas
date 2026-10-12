@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   LifeBuoy,
   Plus,
@@ -6,6 +6,7 @@ import {
   MessageSquare,
   Shield,
   X,
+  Calendar,
 } from "lucide-react";
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
@@ -22,34 +23,65 @@ export const PanelTickets: React.FC = () => {
   const [nuevoTitulo, setNuevoTitulo] = useState("");
   const [nuevaDescripcion, setNuevaDescripcion] = useState("");
   const [nuevaPrioridad, setNuevaPrioridad] = useState<"baja" | "media" | "alta">("media");
+  const [nuevaCategoria, setNuevaCategoria] = useState<"software" | "hardware" | "red" | "cctv">("red");
+  const [nuevaModalidad, setNuevaModalidad] = useState<"remota" | "presencial">("remota");
   const [creando, setCreando] = useState(false);
 
   // Nuevo comentario en conversación
   const [nuevoComentario, setNuevoComentario] = useState("");
   const [enviandoComentario, setEnviandoComentario] = useState(false);
 
-  const fetchTickets = async () => {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const fetchTickets = async (silencioso = false) => {
+    if (!silencioso) setLoading(true);
     try {
       const res = await api.get<Ticket[]>("/tickets/");
-      setTickets(res.data || []);
+      const data = res.data || [];
+      setTickets(data);
+
       if (selectedTicket) {
-        const actualizado = (res.data || []).find((t: Ticket) => t.id === selectedTicket.id);
-        if (actualizado) setSelectedTicket(actualizado);
+        // Obtener el detalle completo del ticket seleccionado para asegurar mensajes frescos
+        try {
+          const resDetalle = await api.get<Ticket>(`/tickets/${selectedTicket.id}`);
+          if (resDetalle.data) setSelectedTicket(resDetalle.data);
+        } catch {
+          const act = data.find((t) => t.id === selectedTicket.id);
+          if (act) setSelectedTicket(act);
+        }
       }
     } catch (e) {
       console.error("Error al cargar tickets:", e);
     } finally {
-      setLoading(false);
+      if (!silencioso) setLoading(false);
+    }
+  };
+
+  const handleSelectTicket = async (t: Ticket) => {
+    setSelectedTicket(t);
+    try {
+      const res = await api.get<Ticket>(`/tickets/${t.id}`);
+      if (res.data) setSelectedTicket(res.data);
+    } catch (e) {
+      console.error("Error al cargar detalle del ticket:", e);
     }
   };
 
   useEffect(() => {
     fetchTickets();
+  }, []);
+
+  // Polling cada 4s para sincronizar conversación bidireccional en tiempo real
+  useEffect(() => {
     const interval = setInterval(() => {
-      fetchTickets();
+      fetchTickets(true);
     }, 4000);
     return () => clearInterval(interval);
   }, [selectedTicket?.id]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [selectedTicket?.comentarios]);
 
   const handleCrearTicket = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,15 +89,18 @@ export const PanelTickets: React.FC = () => {
 
     setCreando(true);
     try {
-      await api.post("/tickets/", {
+      const res = await api.post<Ticket>("/tickets/", {
         titulo: nuevoTitulo.trim(),
         descripcion: nuevaDescripcion.trim(),
         prioridad: nuevaPrioridad,
+        categoria: nuevaCategoria,
+        modalidad: nuevaModalidad,
       });
       setNuevoTitulo("");
       setNuevaDescripcion("");
       setShowCreateModal(false);
       await fetchTickets();
+      if (res.data) handleSelectTicket(res.data);
     } catch (e) {
       alert("Error al reportar el incidente técnico. Intenta nuevamente.");
     } finally {
@@ -84,7 +119,9 @@ export const PanelTickets: React.FC = () => {
         es_interno: false,
       });
       setNuevoComentario("");
-      await fetchTickets();
+      const res = await api.get<Ticket>(`/tickets/${selectedTicket.id}`);
+      if (res.data) setSelectedTicket(res.data);
+      await fetchTickets(true);
     } catch (e) {
       alert("Error al enviar respuesta al ticket.");
     } finally {
@@ -104,6 +141,21 @@ export const PanelTickets: React.FC = () => {
         return "bg-slate-100 text-slate-700 border-slate-200";
       default:
         return "bg-slate-50 text-slate-700 border-slate-200";
+    }
+  };
+
+  const getBadgeCategoria = (categoria?: string) => {
+    switch (categoria) {
+      case "software":
+        return { label: "Software & Sistemas", bg: "bg-purple-100 text-purple-700 border-purple-200" };
+      case "hardware":
+        return { label: "Hardware & Equipos", bg: "bg-amber-100 text-amber-700 border-amber-200" };
+      case "red":
+        return { label: "Redes & Datos", bg: "bg-blue-100 text-blue-700 border-blue-200" };
+      case "cctv":
+        return { label: "CCTV & Seguridad", bg: "bg-emerald-100 text-emerald-700 border-emerald-200" };
+      default:
+        return { label: "Soporte Técnico", bg: "bg-slate-100 text-slate-700 border-slate-200" };
     }
   };
 
@@ -153,14 +205,15 @@ export const PanelTickets: React.FC = () => {
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
               {tickets.map((t) => {
                 const isSelected = selectedTicket?.id === t.id;
+                const catInfo = getBadgeCategoria(t.categoria);
                 return (
                   <div
                     key={t.id}
-                    onClick={() => setSelectedTicket(t)}
+                    onClick={() => handleSelectTicket(t)}
                     className={`card-glass p-4 cursor-pointer transition-all border ${
                       isSelected
-                        ? "border-blue-500 bg-blue-50/40 shadow-md ring-1 ring-blue-400"
-                        : "border-blue-100/80 hover:border-blue-200"
+                        ? "border-blue-500 bg-blue-50/50 shadow-md ring-1 ring-blue-400"
+                        : "border-blue-100/80 hover:border-blue-200 hover:bg-white"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -174,6 +227,20 @@ export const PanelTickets: React.FC = () => {
                       >
                         {t.estado.replace("_", " ")}
                       </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold uppercase border ${catInfo.bg}`}>
+                        {catInfo.label}
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-md font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                        {t.modalidad === "presencial" ? "📍 Presencial" : "🌐 Remota"}
+                      </span>
+                      {t.fecha_visita && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                          🗓️ Visita Agendada
+                        </span>
+                      )}
                     </div>
 
                     <p className="text-xs text-slate-600 line-clamp-2 mb-2">
@@ -196,9 +263,9 @@ export const PanelTickets: React.FC = () => {
         {/* Panel de Conversación / Detalle (7 columnas) */}
         <div className="lg:col-span-7">
           {selectedTicket ? (
-            <div className="card-glass border border-blue-100 flex flex-col h-[600px] overflow-hidden shadow-sm">
+            <div className="card-glass border border-blue-100 flex flex-col h-[600px] overflow-hidden shadow-sm bg-white">
               {/* Encabezado del ticket seleccionado */}
-              <div className="p-4 sm:p-5 bg-white border-b border-slate-100 space-y-2">
+              <div className="p-4 sm:p-5 bg-white border-b border-slate-100 space-y-2.5">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block">
@@ -217,14 +284,30 @@ export const PanelTickets: React.FC = () => {
                   </span>
                 </div>
 
+                {/* Categoría, Modalidad y Visita técnica visible al cliente */}
+                <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase border ${getBadgeCategoria(selectedTicket.categoria).bg}`}>
+                    {getBadgeCategoria(selectedTicket.categoria).label}
+                  </span>
+                  <span className="text-[10px] px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                    Modalidad: {selectedTicket.modalidad === "presencial" ? "📍 Presencial en Sitio" : "🌐 Soporte Remoto"}
+                  </span>
+                  {selectedTicket.fecha_visita && (
+                    <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1">
+                      <Calendar className="w-3 h-3 text-amber-600" />
+                      Visita Programada: {new Date(selectedTicket.fecha_visita).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })}
+                    </span>
+                  )}
+                </div>
+
                 <p className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200/70">
                   {selectedTicket.descripcion}
                 </p>
 
                 {selectedTicket.tecnico_nombre && (
-                  <p className="text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 pt-1">
+                  <p className="text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 pt-0.5">
                     <Shield className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Técnico asignado: {selectedTicket.tecnico_nombre}</span>
+                    <span>Ingeniero / Técnico asignado: <strong>{selectedTicket.tecnico_nombre}</strong></span>
                   </p>
                 )}
               </div>
@@ -234,11 +317,12 @@ export const PanelTickets: React.FC = () => {
                 {(!selectedTicket.comentarios || selectedTicket.comentarios.length === 0) ? (
                   <div className="text-center py-12 text-slate-400 text-xs">
                     <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                    No hay mensajes aún. Escribe a continuación para comunicarte con el equipo técnico.
+                    No hay mensajes aún en este ticket. Escribe a continuación para comunicarte con el equipo técnico.
                   </div>
                 ) : (
                   selectedTicket.comentarios.map((c) => {
                     const esMio = c.usuario_id === user?.id;
+                    const esTecnico = c.usuario_rol === "Técnico" || c.usuario_rol === "Administrador";
                     return (
                       <div
                         key={c.id}
@@ -251,16 +335,32 @@ export const PanelTickets: React.FC = () => {
                               : "bg-white text-slate-800 border border-slate-200 rounded-bl-none shadow-sm"
                           }`}
                         >
-                          <div className="flex items-center justify-between gap-3 text-[10px] opacity-80 mb-1 font-semibold">
-                            <span>{c.usuario_nombre || (esMio ? "Tú" : "Soporte C&R")}</span>
-                            <span>{new Date(c.creado_en).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                          <div className="flex items-center justify-between gap-3 text-[10px] opacity-90 mb-1.5 font-semibold">
+                            <span className="flex items-center gap-1.5">
+                              {esMio ? (
+                                "Tú"
+                              ) : (
+                                <>
+                                  <span className={`px-1.5 py-0.2 rounded font-bold uppercase text-[9px] ${
+                                    esTecnico ? "bg-blue-100 text-blue-700 border border-blue-200" : "bg-slate-100 text-slate-600"
+                                  }`}>
+                                    {c.usuario_rol || "Soporte C&R"}
+                                  </span>
+                                  <span>{c.usuario_nombre || "Ingeniero C&R"}</span>
+                                </>
+                              )}
+                            </span>
+                            <span className="text-[10px] opacity-75">
+                              {new Date(c.creado_en).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </span>
                           </div>
-                          <p className="whitespace-pre-line">{c.contenido}</p>
+                          <p className="whitespace-pre-line leading-relaxed">{c.contenido}</p>
                         </div>
                       </div>
                     );
                   })
                 )}
+                <div ref={messagesEndRef} />
               </div>
 
               {/* Caja para responder al ticket */}
@@ -302,7 +402,7 @@ export const PanelTickets: React.FC = () => {
       {/* Modal Crear Incidente */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="card-glass max-w-lg w-full p-6 sm:p-8 space-y-5 bg-white border border-blue-200 shadow-2xl relative">
+          <div className="card-glass max-w-lg w-full p-6 sm:p-8 space-y-5 bg-white border border-blue-200 shadow-2xl relative rounded-[24px]">
             <button
               onClick={() => setShowCreateModal(false)}
               className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-xl"
@@ -322,7 +422,7 @@ export const PanelTickets: React.FC = () => {
             <form onSubmit={handleCrearTicket} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Título del Incidente
+                  Título del Incidente *
                 </label>
                 <input
                   type="text"
@@ -330,8 +430,40 @@ export const PanelTickets: React.FC = () => {
                   placeholder="Ej. Punto de red sala de juntas sin señal de internet"
                   value={nuevoTitulo}
                   onChange={(e) => setNuevoTitulo(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-blue-500 bg-white"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Especialidad / Categoría *
+                  </label>
+                  <select
+                    value={nuevaCategoria}
+                    onChange={(e: any) => setNuevaCategoria(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-blue-500 bg-white"
+                  >
+                    <option value="red">Redes & Conectividad</option>
+                    <option value="software">Software & Sistemas</option>
+                    <option value="hardware">Hardware & Equipos</option>
+                    <option value="cctv">CCTV & Seguridad</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Modalidad Solicitada *
+                  </label>
+                  <select
+                    value={nuevaModalidad}
+                    onChange={(e: any) => setNuevaModalidad(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-blue-500 bg-white"
+                  >
+                    <option value="remota">Remota (Diagnóstico en línea)</option>
+                    <option value="presencial">Presencial (Visita técnica en sitio)</option>
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -351,7 +483,7 @@ export const PanelTickets: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Descripción Detallada
+                  Descripción Detallada *
                 </label>
                 <textarea
                   required
@@ -359,7 +491,7 @@ export const PanelTickets: React.FC = () => {
                   placeholder="Describe qué ocurrió, desde cuándo y qué equipos están afectados..."
                   value={nuevaDescripcion}
                   onChange={(e) => setNuevaDescripcion(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-blue-500 bg-white"
                 />
               </div>
 

@@ -1,4 +1,5 @@
 from sqlalchemy import (
+    Boolean,
     Column,
     Date,
     DateTime,
@@ -17,7 +18,18 @@ from app.database import Base
 TIPOS_CLIENTE = ("persona", "empresa")
 ESTADOS_CONVERSACION = ("activa", "cerrada", "cotizacion_generada")
 ROLES_MENSAJE = ("user", "assistant")
-ESTADOS_COTIZACION = ("pendiente", "aceptada", "rechazada", "ajuste_solicitado")
+ESTADOS_COTIZACION = (
+    "pendiente",
+    "aceptada",
+    "aprobada",
+    "contactado",
+    "agendado",
+    "en_ejecucion",
+    "concretado",
+    "en_ajuste",
+    "rechazada",
+    "ajuste_solicitado",
+)
 TIPOS_ITEM_COTIZACION = ("servicio", "producto")
 
 
@@ -98,12 +110,19 @@ class Cotizacion(Base):
         Integer, ForeignKey("conversaciones_chat.id"), nullable=True, index=True
     )
     subtotal = Column(Numeric(10, 2), nullable=False, default=0.00)
+    descuento = Column(Numeric(10, 2), nullable=False, default=0.00)
+    porcentaje_iva = Column(Numeric(5, 2), nullable=False, default=19.00)
+    iva = Column(Numeric(10, 2), nullable=False, default=0.00)
     total = Column(Numeric(10, 2), nullable=False, default=0.00)
     estado = Column(
-        Enum(*ESTADOS_COTIZACION, name="estado_cotizacion_enum"),
+        String(50),
         nullable=False,
         default="pendiente",
+        index=True,
     )
+    notas_internas = Column(Text, nullable=True)
+    ingreso_confirmado = Column(Boolean, nullable=False, default=False)
+    fecha_visita_agendada = Column(DateTime, nullable=True)
     url_pdf = Column(String(500), nullable=True)
     fecha_vencimiento = Column(Date, nullable=True)
     creado_en = Column(DateTime(timezone=True), server_default=func.now())
@@ -116,6 +135,31 @@ class Cotizacion(Base):
         back_populates="cotizacion",
         cascade="all, delete-orphan",
     )
+    historial = relationship(
+        "HistorialEstadoCotizacion",
+        back_populates="cotizacion",
+        cascade="all, delete-orphan",
+        order_by="HistorialEstadoCotizacion.creado_en.asc()",
+    )
+
+
+class HistorialEstadoCotizacion(Base):
+    """Trazabilidad inmutable de estados de la cotización tipo seguimiento de envío."""
+
+    __tablename__ = "historial_estados_cotizacion"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cotizacion_id = Column(
+        Integer, ForeignKey("cotizaciones.id"), nullable=False, index=True
+    )
+    estado = Column(String(50), nullable=False)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    usuario_nombre = Column(String(150), nullable=True)
+    observacion = Column(Text, nullable=True)
+    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+
+    cotizacion = relationship("Cotizacion", back_populates="historial")
+    usuario = relationship("Usuario")
 
 
 class ItemCotizacion(Base):

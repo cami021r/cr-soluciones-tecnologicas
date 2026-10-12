@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Literal
 
@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.core.dependencies import obtener_usuario_actual, requiere_roles
 from app.database import get_db
-from app.models.cotizaciones import Cotizacion
+from app.models.catalogo import ProductoExterno, ServicioCatalogo
+from app.models.cotizaciones import Cotizacion, ItemCotizacion
 from app.models.finanzas import CategoriaFinanciera, ProyeccionMensual, TransaccionFinanciera
 from app.models.inventario import Contrato, EquipoContrato
 from app.models.usuarios import Usuario
@@ -19,8 +20,10 @@ from app.schemas.finanzas import (
     ContratoCrear,
     ContratoRespuesta,
     DashboardFinancieroRespuesta,
+    GananciaItem,
     GraficaDistribucionGastos,
     GraficaResumenAnual,
+    MetricasFinancierasAvanzadas,
     ProyeccionTrimestralRespuesta,
     ReporteMensualRespuesta,
     TransaccionFinancieraCrear,
@@ -50,7 +53,7 @@ personal_autorizado = requiere_roles("Administrador")
     summary="Listar categorías financieras",
 )
 def listar_categorias_financieras(
-    tipo: Literal["ingreso", "gasto"] | None = Query(None, description="Filtrar por tipo"),
+    tipo: Literal["ingreso", "gasto", "inversion"] | None = Query(None, description="Filtrar por tipo"),
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(personal_autorizado),
 ):
@@ -135,7 +138,7 @@ def registrar_transaccion(
     summary="Listar y filtrar transacciones financieras",
 )
 def listar_transacciones(
-    tipo: Literal["ingreso", "gasto"] | None = Query(None),
+    tipo: Literal["ingreso", "gasto", "inversion"] | None = Query(None),
     categoria_id: int | None = Query(None),
     es_fijo: bool | None = Query(None),
     fecha_inicio: date | None = Query(None),
@@ -396,4 +399,194 @@ def dashboard_resumen(
         contratos_activos=contratos_activos,
         contratos_por_vencer_15_dias=por_vencer,
         cotizaciones_aceptadas_mes=cotizaciones_mes,
+    )
+
+
+# ===========================================================================
+# FASE 4: CENTRO DE FINANZAS E INDICADORES AVANZADOS PARA EL ADMINISTRADOR
+# ===========================================================================
+
+@router.get(
+    "/metricas/avanzadas",
+    response_model=MetricasFinancierasAvanzadas,
+    summary="Centro de finanzas e indicadores comerciales avanzados",
+)
+def metricas_avanzadas(
+    periodo: Literal["30_dias", "mes_actual", "trimestre", "anio_actual", "historico"] = Query("mes_actual"),
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(personal_autorizado),
+):
+    """
+    Consolida métricas separando:
+    - Posible venta (embudo comercial no concretado)
+    - Ingreso verificado (proyectos concretados con pago confirmado)
+    - Gastos operativos e Inversión
+    - Ganancia neta y margen comercial
+    - Rentabilidad desglosada por cada producto y servicio del catálogo
+    """
+    hoy = date.today()
+
+    if periodo == "30_dias":
+        fecha_desde = hoy - timedelta(days=30)
+    elif periodo == "mes_actual":
+        fecha_desde = date(hoy.year, hoy.month, 1)
+    elif periodo == "trimestre":
+        mes_inicio_trimestre = ((hoy.month - 1) // 3) * 3 + 1
+        fecha_desde = date(hoy.year, mes_inicio_trimestre, 1)
+    elif periodo == "anio_actual":
+        fecha_desde = date(hoy.year, 1, 1)
+    else:  # historico
+        fecha_desde = None
+
+    # 1. Ingresos Verificados (Transacciones tipo 'ingreso')
+    q_ingresos = db.query(func.coalesce(func.sum(TransaccionFinanciera.monto), Decimal("0.00"))).filter(
+        TransaccionFinanciera.tipo == "ingreso"
+    )
+    if fecha_desde:
+        q_ingresos = q_ingresos.filter(TransaccionFinanciera.fecha >= fecha_desde)
+    ingresos_verificados = Decimal(str(q_ingresos.scalar() or 0))
+
+    # 2. Gastos Operativos (Transacciones tipo 'gasto')
+    q_gastos = db.query(func.coalesce(func.sum(TransaccionFinanciera.monto), Decimal("0.00"))).filter(
+        TransaccionFinanciera.tipo == "gasto"
+    )
+    if fecha_desde:
+        q_gastos = q_gastos.filter(TransaccionFinanciera.fecha >= fecha_desde)
+    gastos_operativos = Decimal(str(q_gastos.scalar() or 0))
+
+    # 3. Inversión Total (Transacciones tipo 'inversion')
+    q_inversion = db.query(func.coalesce(func.sum(TransaccionFinanciera.monto), Decimal("0.00"))).filter(
+        TransaccionFinanciera.tipo == "inversion"
+    )
+    if fecha_desde:
+        q_inversion = q_inversion.filter(TransaccionFinanciera.fecha >= fecha_desde)
+    inversion_total = Decimal(str(q_inversion.scalar() or 0))
+
+    # 4. Posible Venta (Cotizaciones activas en curso en el embudo comercial no concretadas)
+    estados_en_curso = [
+        "pendiente",
+        "aceptada",
+        "aprobada",
+        "contactado",
+        "agendado",
+        "en_ejecucion",
+        "en_ajuste",
+        "ajuste_solicitado",
+    ]
+    q_posible = db.query(func.coalesce(func.sum(Cotizacion.total), Decimal("0.00"))).filter(
+        Cotizacion.estado.in_(estados_en_curso),
+        Cotizacion.ingreso_confirmado.is_(False),
+        Cotizacion.eliminado_en.is_(None),
+    )
+    if fecha_desde:
+        q_posible = q_posible.filter(Cotizacion.creado_en >= datetime.combine(fecha_desde, datetime.min.time()))
+    posible_venta = Decimal(str(q_posible.scalar() or 0))
+
+    # Conteo de proyectos concretados y en curso
+    q_concretados = db.query(Cotizacion).filter(Cotizacion.estado == "concretado", Cotizacion.eliminado_en.is_(None))
+    q_en_curso = db.query(Cotizacion).filter(Cotizacion.estado.in_(estados_en_curso), Cotizacion.eliminado_en.is_(None))
+    if fecha_desde:
+        q_concretados = q_concretados.filter(Cotizacion.creado_en >= datetime.combine(fecha_desde, datetime.min.time()))
+        q_en_curso = q_en_curso.filter(Cotizacion.creado_en >= datetime.combine(fecha_desde, datetime.min.time()))
+    cantidad_proyectos_concretados = q_concretados.count()
+    cantidad_cotizaciones_en_curso = q_en_curso.count()
+
+    # Si hay proyectos concretados pero aún no tenían transacción registrada, sumar al ingreso
+    if ingresos_verificados == Decimal("0.00") and cantidad_proyectos_concretados > 0:
+        sum_concretados = db.query(func.coalesce(func.sum(Cotizacion.total), Decimal("0.00"))).filter(
+            Cotizacion.estado == "concretado",
+            Cotizacion.eliminado_en.is_(None),
+        ).scalar()
+        ingresos_verificados = Decimal(str(sum_concretados or 0))
+
+    # 5. Ganancia Neta = Ingresos Verificados - (Gastos Operativos + Inversión)
+    ganancia_neta = ingresos_verificados - (gastos_operativos + inversion_total)
+
+    # 6. Margen Promedio Comercial (%)
+    if ingresos_verificados > Decimal("0.00"):
+        margen_promedio_comercial = float(((ingresos_verificados - gastos_operativos) / ingresos_verificados) * 100)
+    else:
+        margen_promedio_comercial = 0.0
+
+    # 7. Ganancia por Servicio Técnico
+    servicios_db = db.query(ServicioCatalogo).filter(ServicioCatalogo.eliminado_en.is_(None)).all()
+    ganancias_por_servicio = []
+    for s in servicios_db:
+        p_venta = Decimal(str(s.precio_mano_obra or 0))
+        # Costo base operativo estimado: 40% de la tarifa
+        costo_base = (p_venta * Decimal("0.40")).quantize(Decimal("0.01"))
+        ganancia_u = (p_venta - costo_base).quantize(Decimal("0.01"))
+        margen_s = float((ganancia_u / p_venta * 100)) if p_venta > 0 else 0.0
+
+        unidades = db.query(func.coalesce(func.sum(ItemCotizacion.cantidad), Decimal("0.00"))).join(Cotizacion).filter(
+            ItemCotizacion.servicio_id == s.id,
+            Cotizacion.estado.in_(["concretado", "aceptada", "aprobada", "en_ejecucion"]),
+            Cotizacion.eliminado_en.is_(None),
+        ).scalar()
+        u_vendidas = int(unidades or 0)
+        ganancia_total = (ganancia_u * Decimal(str(u_vendidas))).quantize(Decimal("0.01"))
+
+        ganancias_por_servicio.append(GananciaItem(
+            id=s.id,
+            nombre=s.nombre,
+            tipo="servicio",
+            precio_venta=p_venta,
+            costo=costo_base,
+            ganancia_unitaria=ganancia_u,
+            margen_porcentaje=round(margen_s, 1),
+            unidades_vendidas=u_vendidas,
+            ganancia_total_generada=ganancia_total,
+        ))
+
+    # 8. Ganancia por Producto & Repuesto
+    productos_db = db.query(ProductoExterno).filter(ProductoExterno.eliminado_en.is_(None)).all()
+    ganancias_por_producto = []
+    for p in productos_db:
+        costo_p = Decimal(str(p.costo_proveedor or 0))
+        p_ventap = Decimal(str(p.precio_venta_sugerido or 0))
+        ganancia_up = (p_ventap - costo_p).quantize(Decimal("0.01"))
+        margen_p = float(p.margen_ganancia * 100) if p.margen_ganancia else 0.0
+
+        unidades_p = db.query(func.coalesce(func.sum(ItemCotizacion.cantidad), Decimal("0.00"))).join(Cotizacion).filter(
+            ItemCotizacion.producto_id == p.id,
+            Cotizacion.estado.in_(["concretado", "aceptada", "aprobada", "en_ejecucion"]),
+            Cotizacion.eliminado_en.is_(None),
+        ).scalar()
+        up_vendidas = int(unidades_p or 0)
+        ganancia_total_p = (ganancia_up * Decimal(str(up_vendidas))).quantize(Decimal("0.01"))
+
+        ganancias_por_producto.append(GananciaItem(
+            id=p.id,
+            nombre=p.nombre,
+            tipo="producto",
+            precio_venta=p_ventap,
+            costo=costo_p,
+            ganancia_unitaria=ganancia_up,
+            margen_porcentaje=round(margen_p, 1),
+            unidades_vendidas=up_vendidas,
+            ganancia_total_generada=ganancia_total_p,
+        ))
+
+    # 9. Flujo Comparativo para gráficas
+    flujo_comparativo = [
+        {"etiqueta": "Ingresos Verificados", "monto": float(ingresos_verificados), "color": "#10b981"},
+        {"etiqueta": "Gastos Operativos", "monto": float(gastos_operativos), "color": "#f59e0b"},
+        {"etiqueta": "Inversión en Infraestructura", "monto": float(inversion_total), "color": "#6366f1"},
+        {"etiqueta": "Ganancia Neta", "monto": float(ganancia_neta), "color": "#3b82f6"},
+        {"etiqueta": "Posible Venta (Embudo)", "monto": float(posible_venta), "color": "#8b5cf6"},
+    ]
+
+    return MetricasFinancierasAvanzadas(
+        periodo=periodo,
+        ingresos_verificados=ingresos_verificados,
+        posible_venta=posible_venta,
+        gastos_operativos=gastos_operativos,
+        inversion_total=inversion_total,
+        ganancia_neta=ganancia_neta,
+        margen_promedio_comercial=round(margen_promedio_comercial, 1),
+        cantidad_proyectos_concretados=cantidad_proyectos_concretados,
+        cantidad_cotizaciones_en_curso=cantidad_cotizaciones_en_curso,
+        ganancias_por_servicio=ganancias_por_servicio,
+        ganancias_por_producto=ganancias_por_producto,
+        flujo_comparativo=flujo_comparativo,
     )

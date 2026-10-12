@@ -127,10 +127,12 @@ def calcular_cotizacion_financiera(
     db: Session,
     servicios_solicitados: list[dict[str, Any]],
     productos_solicitados: list[dict[str, Any]],
+    descuento: Decimal = Decimal("0.00"),
+    porcentaje_iva: Decimal = Decimal("19.00"),
 ) -> dict[str, Any]:
     """
     Aplica las fórmulas financieras oficiales con los datos reales de la base de datos.
-    Devuelve los items calculados y el subtotal / total garantizado sin errores de redondeo.
+    Devuelve los items calculados, subtotal, descuento, IVA (19% o configurable) y total.
     """
     items_calculados = []
     subtotal_general = Decimal("0.00")
@@ -188,10 +190,15 @@ def calcular_cotizacion_financiera(
         })
 
     subtotal_general = subtotal_general.quantize(Decimal("0.01"))
-    total_general = subtotal_general  # Si se requiere IVA se suma aquí
+    base_gravable = max(Decimal("0.00"), subtotal_general - descuento)
+    iva_general = (base_gravable * (porcentaje_iva / Decimal("100.00"))).quantize(Decimal("0.01"))
+    total_general = (base_gravable + iva_general).quantize(Decimal("0.01"))
 
     return {
         "subtotal": subtotal_general,
+        "descuento": descuento,
+        "porcentaje_iva": porcentaje_iva,
+        "iva": iva_general,
         "total": total_general,
         "items": items_calculados,
     }

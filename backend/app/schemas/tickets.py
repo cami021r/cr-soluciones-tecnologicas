@@ -113,6 +113,7 @@ class TicketListadoItem(BaseModel):
     creado_en: datetime
     cerrado_en: datetime | None = None
     sla_limite_horas: int = 24
+    comentarios: list[ComentarioRespuesta] = []
 
     class Config:
         from_attributes = True

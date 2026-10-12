@@ -1,4 +1,4 @@
-﻿from sqlalchemy import Boolean, Column, Date, DateTime, Enum, ForeignKey, Integer, Numeric, String, func
+from sqlalchemy import Boolean, Column, Date, DateTime, Enum, ForeignKey, Integer, Numeric, String, func
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -9,7 +9,7 @@ class CategoriaFinanciera(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(100), nullable=False)
-    tipo = Column(Enum("ingreso", "gasto"), nullable=False)
+    tipo = Column(String(50), nullable=False, index=True)  # ingreso, gasto, inversion
     descripcion = Column(String(200), nullable=True)
 
     transacciones = relationship("TransaccionFinanciera", back_populates="categoria")
@@ -23,7 +23,7 @@ class TransaccionFinanciera(Base):
     cotizacion_id = Column(Integer, ForeignKey("cotizaciones.id"), nullable=True, index=True)
     descripcion = Column(String(300), nullable=False)
     monto = Column(Numeric(10, 2), nullable=False, default=0.00)
-    tipo = Column(Enum("ingreso", "gasto"), nullable=False, index=True)
+    tipo = Column(String(50), nullable=False, index=True)  # ingreso, gasto, inversion
     es_fijo = Column(Boolean, nullable=False, default=False)
     fecha = Column(Date, nullable=False, index=True)
     creado_en = Column(DateTime(timezone=True), server_default=func.now())

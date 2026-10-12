@@ -35,6 +35,7 @@ import AdminClients from "./pages/admin/AdminClients";
 import AdminInventory from "./pages/admin/AdminInventory";
 import AdminCatalog from "./pages/admin/AdminCatalog";
 import AdminTickets from "./pages/admin/AdminTickets";
+import AdminQuotes from "./pages/admin/AdminQuotes";
 import AdminFinances from "./pages/admin/AdminFinances";
 
 export const App: React.FC = () => {
@@ -98,7 +99,7 @@ export const App: React.FC = () => {
               <Route path="clientes" element={<AdminClients />} />
               <Route path="inventario" element={<AdminInventory />} />
               <Route path="tickets" element={<AdminTickets />} />
-              <Route path="cotizaciones" element={<PanelQuotes />} />
+              <Route path="cotizaciones" element={<AdminQuotes />} />
 
               {/* Rutas con acceso restringido exclusivo para Administrador */}
               <Route element={<ProtectedRoute allowedRoles={["Administrador"]} />}>

@@ -157,19 +157,25 @@ def _renderizar_con_reportlab(datos_contexto: dict[str, Any], ruta_salida: Path)
         "• Garantía: 12 meses en equipos y 6 meses sobre mano de obra.<br/>"
         "• Propuesta válida por 15 días calendario."
     )
+    filas_totales = [
+        ["Subtotal:", f"${cot['subtotal']:,.2f}"],
+    ]
+    if cot.get("descuento", 0) > 0:
+        filas_totales.append(["Descuento:", f"-${cot['descuento']:,.2f}"])
+    p_iva = cot.get("porcentaje_iva", 19.0)
+    filas_totales.append([f"IVA ({p_iva:.0f}%):", f"${cot.get('iva', 0):,.2f}"])
+    filas_totales.append(["TOTAL:", f"${cot['total']:,.2f} COP"])
+
     totales_data = [
         [
             Paragraph(terminos_texto, sub_style),
-            Table([
-                ["Subtotal:", f"${cot['subtotal']:,.2f}"],
-                ["TOTAL:", f"${cot['total']:,.2f} COP"],
-            ], colWidths=[70, 120], style=[
+            Table(filas_totales, colWidths=[85, 115], style=[
                 ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-                ("FONTNAME", (0, 1), (1, 1), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 1), (1, 1), 12),
-                ("TEXTCOLOR", (0, 1), (1, 1), colors.HexColor("#2563eb")),
-                ("LINEABOVE", (0, 1), (1, 1), 1.5, colors.HexColor("#0f172a")),
-                ("PADDING", (0, 0), (-1, -1), 4),
+                ("FONTNAME", (0, -1), (1, -1), "Helvetica-Bold"),
+                ("FONTSIZE", (0, -1), (1, -1), 12),
+                ("TEXTCOLOR", (0, -1), (1, -1), colors.HexColor("#2563eb")),
+                ("LINEABOVE", (0, -1), (1, -1), 1.5, colors.HexColor("#0f172a")),
+                ("PADDING", (0, 0), (-1, -1), 3),
             ]),
         ]
     ]
@@ -242,6 +248,9 @@ def generar_pdf_cotizacion(db: Session, cotizacion_id: int) -> tuple[Path, str]:
         "cotizacion": {
             "id": cotizacion.id,
             "subtotal": float(cotizacion.subtotal or 0.0),
+            "descuento": float(getattr(cotizacion, "descuento", 0.0) or 0.0),
+            "porcentaje_iva": float(getattr(cotizacion, "porcentaje_iva", 19.0) or 19.0),
+            "iva": float(getattr(cotizacion, "iva", 0.0) or 0.0),
             "total": float(cotizacion.total or 0.0),
         },
         "cliente": {
