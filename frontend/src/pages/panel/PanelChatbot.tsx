@@ -9,8 +9,10 @@ import {
   ArrowRight,
   RefreshCw,
   Lightbulb,
+  UserPlus,
 } from "lucide-react";
 import api from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 import type { Quote } from "../../types";
 
 interface ChatMessage {
@@ -20,6 +22,7 @@ interface ChatMessage {
 }
 
 export const PanelChatbot: React.FC = () => {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       rol: "assistant",
@@ -122,13 +125,31 @@ export const PanelChatbot: React.FC = () => {
             </div>
           </div>
 
-          <Link
-            to="/panel/cotizaciones"
-            className="text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50/80 hover:bg-blue-100/80 px-3.5 py-2 rounded-xl transition-colors flex items-center gap-1.5 shrink-0"
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Mis Cotizaciones</span>
-          </Link>
+          {user ? (
+            <Link
+              to="/panel/cotizaciones"
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50/80 hover:bg-blue-100/80 px-3.5 py-2 rounded-xl transition-colors flex items-center gap-1.5 shrink-0"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Mis Cotizaciones</span>
+            </Link>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Link
+                to="/login"
+                className="text-xs font-semibold text-slate-600 hover:text-blue-600 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                Ingresar
+              </Link>
+              <Link
+                to="/registro"
+                className="text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 transition-colors flex items-center gap-1"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>Registrarse</span>
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Historial de Mensajes */}
@@ -180,13 +201,36 @@ export const PanelChatbot: React.FC = () => {
                       </span>
                     </div>
 
-                    <Link
-                      to="/panel/cotizaciones"
-                      className="w-full mt-2 py-2 rounded-xl btn-primary-gradient text-xs font-bold flex items-center justify-center gap-2 shadow-xs"
-                    >
-                      <span>Revisar y Aceptar en Mis Cotizaciones</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
+                    {user ? (
+                      <Link
+                        to="/panel/cotizaciones"
+                        className="w-full mt-2 py-2 rounded-xl btn-primary-gradient text-xs font-bold flex items-center justify-center gap-2 shadow-xs"
+                      >
+                        <span>Revisar y Aceptar en Mis Cotizaciones</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    ) : (
+                      <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl space-y-2">
+                        <div className="text-[11px] font-semibold text-slate-700">
+                          🎉 <strong className="text-blue-700">¡Tu cotización estimada está lista!</strong> Para guardarla, descargar el PDF y activar tu atención prioritaria con un técnico especialista, crea tu cuenta o inicia sesión:
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                          <Link
+                            to="/registro"
+                            className="flex-1 py-2 rounded-xl btn-primary-gradient text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs"
+                          >
+                            <UserPlus className="w-3.5 h-3.5" />
+                            <span>Crear Cuenta de Cliente</span>
+                          </Link>
+                          <Link
+                            to="/login"
+                            className="px-4 py-2 rounded-xl bg-white border border-blue-200 text-blue-700 hover:bg-blue-50 text-xs font-bold flex items-center justify-center transition-colors"
+                          >
+                            <span>Iniciar Sesión</span>
+                          </Link>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

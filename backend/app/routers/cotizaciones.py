@@ -4,7 +4,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, s
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.dependencies import obtener_usuario_actual, requiere_roles
+from app.core.dependencies import obtener_usuario_actual, obtener_usuario_opcional, requiere_roles
 from app.database import get_db
 from app.services.notificaciones import ejecutar_tarea_notificacion_asincrona
 from decimal import Decimal
@@ -45,11 +45,36 @@ router = APIRouter(prefix="/cotizaciones", tags=["Cotizaciones y Chatbot IA"])
 solo_personal = requiere_roles("Administrador", "Técnico")
 
 
-def _obtener_o_crear_cliente(db: Session, usuario: Usuario) -> Cliente:
-    """Garantiza que el usuario autenticado cuente con un perfil de cliente registrado."""
+def _obtener_o_crear_cliente(db: Session, usuario: Usuario | None) -> Cliente:
+    """Garantiza que el usuario cuente con un perfil de cliente o asigna un prospecto web para visitantes."""
+    if usuario is None:
+        guest_user = db.query(Usuario).filter(Usuario.email == "visitante@crsoluciones.com").first()
+        if not guest_user:
+            guest_user = Usuario(
+                nombre="Visitante",
+                apellido="Web",
+                email="visitante@crsoluciones.com",
+                password_hash="guest_no_login",
+                rol_id=2,
+                activo=True,
+            )
+            db.add(guest_user)
+            db.flush()
+        cliente = db.query(Cliente).filter(Cliente.usuario_id == guest_user.id).first()
+        if not cliente:
+            cliente = Cliente(
+                usuario_id=guest_user.id,
+                nombre_empresa=None,
+                tipo="persona",
+                documento="PROSPECTO-WEB",
+            )
+            db.add(cliente)
+            db.commit()
+            db.refresh(cliente)
+        return cliente
+
     cliente = db.query(Cliente).filter(Cliente.usuario_id == usuario.id).first()
     if not cliente:
-        # Generar un registro de cliente por defecto con sus datos de usuario
         doc_default = f"CC-{usuario.id}-{usuario.telefono or '0000'}"
         cliente = Cliente(
             usuario_id=usuario.id,
@@ -78,7 +103,7 @@ def interactuar_con_chatbot(
     datos: MensajeCrear,
     conversacion_id: int | None = Query(default=None, description="ID de conversación existente"),
     db: Session = Depends(get_db),
-    usuario_actual: Usuario = Depends(obtener_usuario_actual),
+    usuario_actual: Usuario | None = Depends(obtener_usuario_opcional),
 ):
     """
     Recibe el mensaje del cliente, mantiene el historial de la sesión, inyecta
@@ -190,8 +215,8 @@ def interactuar_con_chatbot(
             hist_ini = HistorialEstadoCotizacion(
                 cotizacion_id=cotizacion_obj.id,
                 estado="pendiente",
-                usuario_id=usuario_actual.id,
-                usuario_nombre=usuario_actual.nombre_completo,
+                usuario_id=usuario_actual.id if usuario_actual else None,
+                usuario_nombre=usuario_actual.nombre_completo if usuario_actual else "Visitante Web (Cotizador IA)",
                 observacion="Cotización generada automáticamente a través del Cotizador Inteligente C&R",
             )
             db.add(hist_ini)

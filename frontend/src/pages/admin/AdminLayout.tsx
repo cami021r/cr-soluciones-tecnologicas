@@ -11,6 +11,7 @@ import {
   BookOpen,
   DollarSign,
   FileCheck,
+  Truck,
   LogOut,
   ShieldCheck,
   Wrench,
@@ -40,6 +41,7 @@ export const AdminLayout: React.FC = () => {
       ? [
           { label: "Finanzas & Caja", path: "/admin/finanzas", icon: DollarSign },
           { label: "Catálogo Comercial", path: "/admin/catalogo", icon: BookOpen },
+          { label: "Proveedores", path: "/admin/proveedores", icon: Truck },
           { label: "Todas las Cotizaciones", path: "/admin/cotizaciones", icon: FileCheck },
         ]
       : []),

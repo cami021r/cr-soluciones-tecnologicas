@@ -14,6 +14,7 @@ import {
   Save,
 } from "lucide-react";
 import api from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 import type { Ticket, User } from "../../types";
 
 interface ExtendedTicket extends Ticket {
@@ -27,6 +28,7 @@ interface ExtendedTicket extends Ticket {
 }
 
 export const AdminTickets: React.FC = () => {
+  const { isAdmin } = useAuth();
   const [tickets, setTickets] = useState<ExtendedTicket[]>([]);
   const [technicians, setTechnicians] = useState<User[]>([]);
   const [clientesList, setClientesList] = useState<{ id: number; nombre: string }[]>([]);
@@ -543,18 +545,24 @@ export const AdminTickets: React.FC = () => {
                     <UserCheck className="w-4 h-4 text-blue-600" />
                     <span>Técnico Responsable:</span>
                   </div>
-                  <select
-                    value={selectedTicket.tecnico_id || ""}
-                    onChange={(e) => handleAssignTechnician(e.target.value)}
-                    className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white text-slate-800 focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="">Sin Asignar</option>
-                    {technicians.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.nombre} {t.apellido} ({t.rol.nombre})
-                      </option>
-                    ))}
-                  </select>
+                  {isAdmin ? (
+                    <select
+                      value={selectedTicket.tecnico_id || ""}
+                      onChange={(e) => handleAssignTechnician(e.target.value)}
+                      className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white text-slate-800 focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="">Sin Asignar</option>
+                      {technicians.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.nombre} {t.apellido} ({t.rol.nombre})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="font-bold text-blue-700 bg-white px-3 py-1 rounded-lg border border-slate-200">
+                      {selectedTicket.tecnico_nombre || "Tú"}
+                    </span>
+                  )}
                 </div>
 
                 {/* Clasificación y Visita Técnica */}

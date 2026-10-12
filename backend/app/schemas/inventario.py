@@ -6,6 +6,11 @@ from pydantic import BaseModel, Field
 EstadoEquipo = Literal["disponible", "rentado", "en_bodega", "en_mantenimiento"]
 
 
+class CategoriaCrear(BaseModel):
+    nombre: str = Field(min_length=1, max_length=100)
+    descripcion: str | None = None
+
+
 class CategoriaRespuesta(BaseModel):
     id: int
     nombre: str

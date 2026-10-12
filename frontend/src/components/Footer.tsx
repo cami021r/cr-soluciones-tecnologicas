@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Mail, MapPin, MessageCircle, ExternalLink, ShieldCheck } from "lucide-react";
+import { Mail, MapPin, MessageCircle, ExternalLink } from "lucide-react";
 import { Logo } from "./Logo";
 
 export const Footer: React.FC = () => {
@@ -14,10 +14,6 @@ export const Footer: React.FC = () => {
             <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-sm pt-2">
               Infraestructura TI profesional, cableado estructurado Cat6 certificado, videovigilancia CCTV, conmutación Wi-Fi 6 y soporte técnico para hogares, empresas y PYMEs en Bogotá.
             </p>
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-blue-50/80 border border-blue-200/80 text-[11px] text-blue-700 font-semibold shadow-xs">
-              <ShieldCheck className="w-4 h-4 text-blue-600" />
-              <span>Plataforma con Trazabilidad Digital & Códigos QR</span>
-            </div>
             <div className="text-[11px] text-slate-500 border-l-2 border-blue-500 pl-3 pt-1">
               Proyecto SENA — Ficha 2834855 (ADSO) | Camila Andrea Quintero Roa
             </div>

@@ -12,6 +12,7 @@ import {
   X,
   Save,
   QrCode,
+  Trash2,
 } from "lucide-react";
 import api from "../../services/api";
 
@@ -117,6 +118,21 @@ export const AdminClients: React.FC = () => {
       alert("Error al actualizar la información del cliente.");
     } finally {
       setSavingEdit(false);
+    }
+  };
+
+  const handleDeleteCliente = async (clienteId: number, nombre: string) => {
+    if (!confirm(`¿Estás seguro de que deseas eliminar al cliente "${nombre}"? Esta acción desactivará su cuenta y su ficha.`)) {
+      return;
+    }
+    try {
+      await api.delete(`/clientes/${clienteId}`);
+      if (selectedCliente?.id === clienteId) {
+        setSelectedCliente(null);
+      }
+      await fetchClientes();
+    } catch (e: any) {
+      alert(e.response?.data?.detail || "Error al eliminar el cliente");
     }
   };
 
@@ -314,13 +330,23 @@ export const AdminClients: React.FC = () => {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setShowEditModal(true)}
-                  className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors self-start sm:self-auto shadow-xs"
-                >
-                  <Edit3 className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Editar Datos</span>
-                </button>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <button
+                    onClick={() => setShowEditModal(true)}
+                    className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Editar Datos</span>
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCliente(selectedCliente.id, selectedCliente.nombre_completo)}
+                    className="px-3.5 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
+                    title="Desactivar y eliminar este cliente"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                    <span>Eliminar</span>
+                  </button>
+                </div>
               </div>
 
               {/* Botones de Acción Directa: Llamar, WhatsApp, Correo */}

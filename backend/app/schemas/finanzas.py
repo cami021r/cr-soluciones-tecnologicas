@@ -35,6 +35,15 @@ class TransaccionFinancieraCrear(TransaccionFinancieraBase):
     pass
 
 
+class TransaccionFinancieraActualizar(BaseModel):
+    categoria_id: int | None = None
+    descripcion: str | None = Field(None, max_length=300)
+    monto: Decimal | None = Field(None, gt=0)
+    tipo: Literal["ingreso", "gasto", "inversion"] | None = None
+    es_fijo: bool | None = None
+    fecha: date | None = None
+
+
 class TransaccionFinancieraRespuesta(TransaccionFinancieraBase):
     id: int
     creado_en: datetime

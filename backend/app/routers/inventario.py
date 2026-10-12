@@ -32,6 +32,7 @@ from app.models.inventario import (
 from app.models.usuarios import Usuario
 from app.schemas.inventario import (
     CambioEstado,
+    CategoriaCrear,
     CategoriaRespuesta,
     EquipoActualizar,
     EquipoCrear,
@@ -68,6 +69,34 @@ def listar_categorias(
     usuario: Usuario = Depends(solo_tecnicos),
 ):
     return db.query(CategoriaEquipo).order_by(CategoriaEquipo.nombre).all()
+
+
+@router.post("/categorias", response_model=CategoriaRespuesta, status_code=status.HTTP_201_CREATED)
+def crear_categoria(
+    datos: CategoriaCrear,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(solo_admin),
+):
+    """Permite al administrador agregar una nueva categoría de equipos e inventario."""
+    existente = (
+        db.query(CategoriaEquipo)
+        .filter(CategoriaEquipo.nombre.ilike(datos.nombre.strip()))
+        .first()
+    )
+    if existente:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Ya existe una categoría de inventario con el nombre '{datos.nombre}'",
+        )
+
+    cat = CategoriaEquipo(
+        nombre=datos.nombre.strip(),
+        descripcion=datos.descripcion.strip() if datos.descripcion else None,
+    )
+    db.add(cat)
+    db.commit()
+    db.refresh(cat)
+    return cat
 
 
 @router.post("", response_model=EquipoRespuesta, status_code=status.HTTP_201_CREATED)

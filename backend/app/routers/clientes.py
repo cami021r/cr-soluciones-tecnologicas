@@ -242,3 +242,28 @@ def editar_cliente(
     db.refresh(cliente)
 
     return detalle_cliente(cliente.id, db, usuario_actual)
+
+
+@router.delete("/{cliente_id}", status_code=status.HTTP_200_OK)
+def eliminar_cliente(
+    cliente_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(solo_administradores),
+):
+    """
+    Borrado lógico de cliente y desactivación de su cuenta de usuario.
+    """
+    cliente = db.query(Cliente).filter(
+        Cliente.id == cliente_id, Cliente.eliminado_en.is_(None)
+    ).first()
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+    ahora = datetime.now(timezone.utc)
+    cliente.eliminado_en = ahora
+    if cliente.usuario:
+        cliente.usuario.activo = False
+        cliente.usuario.eliminado_en = ahora
+
+    db.commit()
+    return {"mensaje": f"Cliente #{cliente_id} eliminado exitosamente"}

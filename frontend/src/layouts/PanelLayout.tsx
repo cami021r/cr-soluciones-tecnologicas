@@ -31,7 +31,7 @@ export const PanelLayout: React.FC = () => {
   const navItems = [
     { label: "Resumen del Panel", path: "/panel", icon: LayoutDashboard },
     { label: "Mis Cotizaciones", path: "/panel/cotizaciones", icon: FileText },
-    { label: "Cotizador con IA", path: "/cotizador", icon: Sparkles, highlight: true },
+    { label: "Cotizador con IA", path: "/panel/cotizador", icon: Sparkles, highlight: true },
     { label: "Mis Equipos & QR", path: "/panel/equipos", icon: Box },
     { label: "Soporte & Tickets", path: "/panel/tickets", icon: LifeBuoy },
     { label: "Mi Perfil & Cuenta", path: "/panel/perfil", icon: User },

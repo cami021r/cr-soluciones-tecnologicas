@@ -26,6 +26,7 @@ from app.schemas.finanzas import (
     MetricasFinancierasAvanzadas,
     ProyeccionTrimestralRespuesta,
     ReporteMensualRespuesta,
+    TransaccionFinancieraActualizar,
     TransaccionFinancieraCrear,
     TransaccionFinancieraRespuesta,
 )
@@ -175,6 +176,85 @@ def listar_transacciones(
         )
         for t in transacciones
     ]
+
+
+@router.patch(
+    "/transacciones/{transaccion_id}",
+    response_model=TransaccionFinancieraRespuesta,
+    summary="Modificar una transacción financiera registrada",
+)
+def modificar_transaccion(
+    transaccion_id: int,
+    datos: TransaccionFinancieraActualizar,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(solo_admin),
+):
+    """Permite al administrador modificar montos, descripciones o categorías de gastos e inversiones."""
+    t = db.query(TransaccionFinanciera).filter(TransaccionFinanciera.id == transaccion_id).first()
+    if not t:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Transacción con ID {transaccion_id} no encontrada",
+        )
+
+    if datos.categoria_id is not None:
+        cat = db.query(CategoriaFinanciera).get(datos.categoria_id)
+        if not cat:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Categoría con ID {datos.categoria_id} no existe",
+            )
+        t.categoria_id = datos.categoria_id
+
+    if datos.descripcion is not None:
+        t.descripcion = datos.descripcion.strip()
+    if datos.monto is not None:
+        t.monto = datos.monto
+    if datos.tipo is not None:
+        t.tipo = datos.tipo
+    if datos.es_fijo is not None:
+        t.es_fijo = datos.es_fijo
+    if datos.fecha is not None:
+        t.fecha = datos.fecha
+
+    db.commit()
+    db.refresh(t)
+
+    return TransaccionFinancieraRespuesta(
+        id=t.id,
+        categoria_id=t.categoria_id,
+        cotizacion_id=t.cotizacion_id,
+        descripcion=t.descripcion,
+        monto=t.monto,
+        tipo=t.tipo,
+        es_fijo=t.es_fijo,
+        fecha=t.fecha,
+        creado_en=t.creado_en,
+        categoria_nombre=t.categoria.nombre if t.categoria else None,
+    )
+
+
+@router.delete(
+    "/transacciones/{transaccion_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Eliminar una transacción financiera",
+)
+def eliminar_transaccion(
+    transaccion_id: int,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(solo_admin),
+):
+    """Permite anular o eliminar un gasto, ingreso o inversión registrado erróneamente."""
+    t = db.query(TransaccionFinanciera).filter(TransaccionFinanciera.id == transaccion_id).first()
+    if not t:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Transacción con ID {transaccion_id} no encontrada",
+        )
+
+    db.delete(t)
+    db.commit()
+    return {"mensaje": f"Transacción #{transaccion_id} eliminada exitosamente"}
 
 
 # ===========================================================================

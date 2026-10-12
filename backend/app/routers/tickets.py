@@ -204,12 +204,18 @@ def listar_tickets(
 
     # Control de acceso según rol
     es_cliente = usuario_actual.rol.nombre == "Cliente"
+    es_tecnico = usuario_actual.rol.nombre == "Técnico"
+
     if es_cliente:
         cliente = db.query(Cliente).filter(Cliente.usuario_id == usuario_actual.id).first()
         if not cliente:
             return []
         query = query.filter(Ticket.cliente_id == cliente.id)
+    elif es_tecnico:
+        # El técnico solo ve los tickets asignados a él
+        query = query.filter(Ticket.tecnico_id == usuario_actual.id)
     else:
+        # Administrador: ve todos los tickets
         if cliente_id is not None:
             query = query.filter(Ticket.cliente_id == cliente_id)
         if tecnico_id is not None:
@@ -314,13 +320,19 @@ def obtener_ticket(
             detail=f"Ticket con ID {ticket_id} no encontrado",
         )
 
-    # Validar acceso para clientes
+    # Validar acceso para clientes y técnicos
     if usuario_actual.rol.nombre == "Cliente":
         cliente = db.query(Cliente).filter(Cliente.usuario_id == usuario_actual.id).first()
         if not cliente or ticket.cliente_id != cliente.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No tienes permiso para consultar este ticket",
+            )
+    elif usuario_actual.rol.nombre == "Técnico":
+        if ticket.tecnico_id != usuario_actual.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Solo tienes acceso a los tickets asignados a tu usuario",
             )
 
     return _construir_respuesta_ticket(ticket, usuario_actual)

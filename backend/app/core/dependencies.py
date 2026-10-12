@@ -37,6 +37,26 @@ def obtener_usuario_actual(
     return usuario
 
 
+oauth2_scheme_opcional = OAuth2PasswordBearer(tokenUrl="usuarios/login", auto_error=False)
+
+
+def obtener_usuario_opcional(
+    token: str | None = Depends(oauth2_scheme_opcional),
+    db: Session = Depends(get_db),
+) -> Usuario | None:
+    """Devuelve el Usuario si el token es válido, o None si es un visitante anónimo."""
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        usuario_id = payload.get("sub")
+        if usuario_id is None:
+            return None
+        return db.query(Usuario).get(int(usuario_id))
+    except Exception:
+        return None
+
+
 def requiere_roles(*roles_permitidos: str):
     """
     Genera una dependencia que solo deja pasar a usuarios con uno de los roles indicados.

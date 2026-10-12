@@ -37,6 +37,7 @@ import AdminCatalog from "./pages/admin/AdminCatalog";
 import AdminTickets from "./pages/admin/AdminTickets";
 import AdminQuotes from "./pages/admin/AdminQuotes";
 import AdminFinances from "./pages/admin/AdminFinances";
+import AdminProviders from "./pages/admin/AdminProviders";
 
 export const App: React.FC = () => {
   return (
@@ -59,19 +60,17 @@ export const App: React.FC = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Register />} />
 
-          {/* Cotizador con IA: Protegido (requiere sesión, redirige a /login) */}
-          <Route element={<ProtectedRoute allowedRoles={["Cliente", "Administrador", "Técnico"]} />}>
-            <Route
-              path="/cotizador"
-              element={
-                <PublicLayout>
-                  <div className="py-6 sm:py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-                    <PanelChatbot />
-                  </div>
-                </PublicLayout>
-              }
-            />
-          </Route>
+          {/* Cotizador con IA Público para Visitantes (sin forzar login antes de cotizar) */}
+          <Route
+            path="/cotizador"
+            element={
+              <PublicLayout>
+                <div className="py-6 sm:py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+                  <PanelChatbot />
+                </div>
+              </PublicLayout>
+            }
+          />
 
           {/* ======================================================== */}
           {/* ZONA 2: ÁREA DEL CLIENTE (Panel Propio con Menú Lateral) */}
@@ -79,6 +78,7 @@ export const App: React.FC = () => {
           <Route element={<ProtectedRoute allowedRoles={["Cliente", "Administrador", "Técnico"]} />}>
             <Route path="/panel" element={<PanelLayout />}>
               <Route index element={<PanelDashboard />} />
+              <Route path="cotizador" element={<PanelChatbot />} />
               <Route path="cotizaciones" element={<PanelQuotes />} />
               <Route path="perfil" element={<PanelProfile />} />
               <Route path="equipos" element={<PanelEquipment />} />
@@ -104,6 +104,7 @@ export const App: React.FC = () => {
               {/* Rutas con acceso restringido exclusivo para Administrador */}
               <Route element={<ProtectedRoute allowedRoles={["Administrador"]} />}>
                 <Route path="catalogo" element={<AdminCatalog />} />
+                <Route path="proveedores" element={<AdminProviders />} />
                 <Route path="finanzas" element={<AdminFinances />} />
               </Route>
             </Route>
