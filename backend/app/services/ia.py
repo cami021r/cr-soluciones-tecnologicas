@@ -4,12 +4,21 @@ import os
 import re
 from typing import Any
 
+from pathlib import Path
+from dotenv import load_dotenv
 import httpx
 
 logger = logging.getLogger(__name__)
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+# Cargar variables de entorno buscando en múltiples rutas posibles
+load_dotenv()
+_base_dir = Path(__file__).resolve().parent.parent.parent
+load_dotenv(_base_dir / ".env")
+load_dotenv(_base_dir.parent / ".env")
+load_dotenv(_base_dir / "backend" / ".env")
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "").strip()
 
 # ===========================================================================
 # PASO 6.2: PROMPT DEL SISTEMA MAESTRO Y REGLAS ANTI-ALUCINACIÓN
@@ -72,8 +81,8 @@ def consultar_ia(mensajes: list[dict[str, str]], contexto_catalogo: str) -> str:
     2. Anthropic Claude API (si está configurada).
     3. Simulador Inteligente C&R (fallback autónomo $0 pesos).
     """
-    gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
-    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+    gemini_key = os.getenv("GEMINI_API_KEY", "").strip() or GEMINI_API_KEY
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "").strip() or ANTHROPIC_API_KEY
 
     prompt_sistema = PROMPT_SISTEMA_MAESTRO.replace("{contexto_catalogo}", contexto_catalogo)
 
