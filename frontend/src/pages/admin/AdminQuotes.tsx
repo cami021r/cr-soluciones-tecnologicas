@@ -23,6 +23,7 @@ import {
   TrendingUp,
   Layers,
   Send,
+  Archive,
 } from "lucide-react";
 import api from "../../services/api";
 import type { Quote, QuoteItem } from "../../types";
@@ -33,6 +34,8 @@ export const AdminQuotes: React.FC = () => {
   const [search, setSearch] = useState("");
   const [filterState, setFilterState] = useState<string>("todas");
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<"activas" | "archivadas">("activas");
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
 
   // Modal para cambiar estado / avanzar embudo
   const [statusModalOpen, setStatusModalOpen] = useState(false);
@@ -53,9 +56,10 @@ export const AdminQuotes: React.FC = () => {
   const [editItems, setEditItems] = useState<QuoteItem[]>([]);
   const [editLoading, setEditLoading] = useState(false);
 
-  const fetchQuotes = async () => {
+  const fetchQuotes = async (archivadas = (viewMode === "archivadas")) => {
+    setLoading(true);
     try {
-      const res = await api.get<Quote[]>("/cotizaciones/");
+      const res = await api.get<Quote[]>(`/cotizaciones/?archivadas=${archivadas}`);
       setQuotes(res.data || []);
     } catch (e) {
       console.error("Error al cargar cotizaciones:", e);
@@ -65,8 +69,38 @@ export const AdminQuotes: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchQuotes();
-  }, []);
+    fetchQuotes(viewMode === "archivadas");
+  }, [viewMode]);
+
+  const handleArchiveQuote = async (cotizacionId: number) => {
+    if (!confirm(`¿Estás seguro de archivar la cotización #${cotizacionId}? Se moverá al historial para mantener limpio el panel activo.`)) {
+      return;
+    }
+    setActionLoading(cotizacionId);
+    try {
+      await api.delete(`/cotizaciones/${cotizacionId}`);
+      await fetchQuotes(viewMode === "archivadas");
+    } catch (e: any) {
+      alert(e.response?.data?.detail || "Error al archivar la cotización");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleRestoreQuote = async (cotizacionId: number) => {
+    if (!confirm(`¿Deseas restaurar la cotización #${cotizacionId} al embudo de ventas activo?`)) {
+      return;
+    }
+    setActionLoading(cotizacionId);
+    try {
+      await api.patch(`/cotizaciones/${cotizacionId}/restaurar`);
+      await fetchQuotes(viewMode === "archivadas");
+    } catch (e: any) {
+      alert(e.response?.data?.detail || "Error al restaurar la cotización");
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const handleDownloadPdf = async (cotizacionId: number) => {
     try {
@@ -330,6 +364,32 @@ export const AdminQuotes: React.FC = () => {
             Supervisa el embudo de ventas, ajusta propuestas económicas, agenda visitas técnicas y contacta directamente a cada cliente.
           </p>
         </div>
+
+        {/* Selector de Vista: Activas vs Archivadas */}
+        <div className="flex items-center p-1 bg-slate-200/80 rounded-2xl border border-slate-300/60 shrink-0 self-start sm:self-auto shadow-xs">
+          <button
+            onClick={() => setViewMode("activas")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              viewMode === "activas"
+                ? "bg-white text-blue-700 shadow-xs"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Embudo Activo</span>
+          </button>
+          <button
+            onClick={() => setViewMode("archivadas")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              viewMode === "archivadas"
+                ? "bg-white text-rose-700 shadow-xs"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Archive className="w-3.5 h-3.5" />
+            <span>Archivadas / Histórico</span>
+          </button>
+        </div>
       </div>
 
       {/* Tarjetas de Indicadores del Embudo */}
@@ -465,6 +525,11 @@ export const AdminQuotes: React.FC = () => {
                           Ingreso Verificado
                         </span>
                       )}
+                      {cot.eliminado_en && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-200 text-slate-700 border border-slate-300">
+                          Archivada / Histórico
+                        </span>
+                      )}
                     </div>
 
                     {/* Cliente y Empresa */}
@@ -544,24 +609,49 @@ export const AdminQuotes: React.FC = () => {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                      {/* Botón de Cambiar Estado */}
-                      <button
-                        onClick={() => openStatusModal(cot)}
-                        className="px-3.5 py-2 rounded-xl text-xs font-bold btn-primary-gradient text-white flex items-center gap-1.5 shadow-xs"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                        <span>Avanzar Estado</span>
-                      </button>
+                      {viewMode === "archivadas" ? (
+                        /* Botón de Restaurar al Embudo */
+                        <button
+                          disabled={actionLoading === cot.id}
+                          onClick={() => handleRestoreQuote(cot.id)}
+                          className="px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1.5 shadow-xs disabled:opacity-50"
+                          title="Restaurar al embudo comercial activo"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Restaurar</span>
+                        </button>
+                      ) : (
+                        <>
+                          {/* Botón de Cambiar Estado */}
+                          <button
+                            onClick={() => openStatusModal(cot)}
+                            className="px-3.5 py-2 rounded-xl text-xs font-bold btn-primary-gradient text-white flex items-center gap-1.5 shadow-xs"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span>Avanzar Estado</span>
+                          </button>
 
-                      {/* Botón de Edición de Propuesta */}
-                      <button
-                        onClick={() => openEditModal(cot)}
-                        className="px-3 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 flex items-center gap-1.5"
-                        title="Modificar ítems, precios, descuentos y vigencia"
-                      >
-                        <Edit3 className="w-3.5 h-3.5 text-blue-600" />
-                        <span className="hidden sm:inline">Editar</span>
-                      </button>
+                          {/* Botón de Edición de Propuesta */}
+                          <button
+                            onClick={() => openEditModal(cot)}
+                            className="px-3 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 flex items-center gap-1.5"
+                            title="Modificar ítems, precios, descuentos y vigencia"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-blue-600" />
+                            <span className="hidden sm:inline">Editar</span>
+                          </button>
+
+                          {/* Botón de Archivar */}
+                          <button
+                            disabled={actionLoading === cot.id}
+                            onClick={() => handleArchiveQuote(cot.id)}
+                            className="p-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition-colors disabled:opacity-50"
+                            title="Archivar cotización para mantener orden en el panel"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
 
                       {/* Botón de PDF */}
                       <button

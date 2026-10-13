@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
@@ -261,6 +262,7 @@ def _construir_respuesta_cotizacion(c: Cotizacion) -> CotizacionRespuesta:
         url_pdf=c.url_pdf,
         fecha_vencimiento=c.fecha_vencimiento,
         creado_en=c.creado_en,
+        eliminado_en=c.eliminado_en,
         items=[
             ItemCotizacionRespuesta(
                 id=it.id,
@@ -299,6 +301,7 @@ def _construir_respuesta_cotizacion(c: Cotizacion) -> CotizacionRespuesta:
 def listar_cotizaciones(
     estado: str | None = Query(default=None, description="Filtrar por estado"),
     buscar: str | None = Query(default=None, description="Buscar por cliente o ID"),
+    archivadas: bool = Query(default=False, description="Ver cotizaciones archivadas"),
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual),
 ):
@@ -310,8 +313,12 @@ def listar_cotizaciones(
             joinedload(Cotizacion.cliente).joinedload(Cliente.usuario),
             joinedload(Cotizacion.historial),
         )
-        .filter(Cotizacion.eliminado_en.is_(None))
     )
+
+    if archivadas:
+        query = query.filter(Cotizacion.eliminado_en.is_not(None))
+    else:
+        query = query.filter(Cotizacion.eliminado_en.is_(None))
 
     if usuario_actual.rol.nombre == "Cliente":
         cliente = db.query(Cliente).filter(Cliente.usuario_id == usuario_actual.id).first()
@@ -379,6 +386,63 @@ def obtener_cotizacion(
     return _construir_respuesta_cotizacion(cotizacion)
 
 
+@router.get(
+    "/{cotizacion_id}/pdf",
+    summary="Descargar PDF formal de la cotización",
+    responses={
+        200: {"content": {"application/pdf": {}}},
+        404: {"description": "Cotización no encontrada"},
+    },
+)
+def descargar_pdf_cotizacion(
+    cotizacion_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario | None = Depends(obtener_usuario_opcional),
+):
+    """Genera (o recupera) el PDF formal de la propuesta técnica y comercial con ReportLab/WeasyPrint."""
+    cotizacion = (
+        db.query(Cotizacion)
+        .options(
+            joinedload(Cotizacion.items),
+            joinedload(Cotizacion.cliente).joinedload(Cliente.usuario),
+        )
+        .filter(Cotizacion.id == cotizacion_id, Cotizacion.eliminado_en.is_(None))
+        .first()
+    )
+    if not cotizacion:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Cotización #{cotizacion_id} no encontrada",
+        )
+
+    if usuario_actual and usuario_actual.rol and usuario_actual.rol.nombre == "Cliente":
+        cliente = db.query(Cliente).filter(Cliente.usuario_id == usuario_actual.id).first()
+        if not cliente or cotizacion.cliente_id != cliente.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes autorización para descargar esta cotización",
+            )
+    elif not usuario_actual:
+        if not (cotizacion.cliente and cotizacion.cliente.usuario and cotizacion.cliente.usuario.email == "visitante@crsoluciones.com"):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Autenticación requerida para acceder al documento",
+            )
+
+    ruta_pdf, _ = generar_pdf_cotizacion(db, cotizacion_id)
+    if not ruta_pdf or not Path(ruta_pdf).exists():
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error al generar el documento PDF",
+        )
+
+    return FileResponse(
+        path=str(ruta_pdf),
+        media_type="application/pdf",
+        filename=f"Cotizacion_CR_{cotizacion_id}.pdf",
+    )
+
+
 @router.patch(
     "/{cotizacion_id}",
     response_model=CotizacionRespuesta,
@@ -387,6 +451,7 @@ def obtener_cotizacion(
 def modificar_cotizacion(
     cotizacion_id: int,
     datos: CotizacionActualizar,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(solo_personal),
 ):
@@ -455,6 +520,23 @@ def modificar_cotizacion(
     db.add(hist)
     db.commit()
     db.refresh(cotizacion)
+
+    # Notificar al cliente sobre la actualización de la cotización
+    if cotizacion.cliente and cotizacion.cliente.usuario:
+        cli_u = cotizacion.cliente.usuario
+        background_tasks.add_task(
+            ejecutar_tarea_notificacion_asincrona,
+            tipo_evento="cotizacion_actualizada",
+            datos={
+                "cotizacion_id": cotizacion.id,
+                "nuevo_estado": cotizacion.estado,
+                "cliente_nombre": cli_u.nombre_completo,
+                "observacion": "Presupuesto, condiciones e ítems modificados por administración",
+                "total": float(cotizacion.total or 0.0),
+            },
+            usuario_id=cli_u.id,
+        )
+
     return _construir_respuesta_cotizacion(cotizacion)
 
 
@@ -594,6 +676,95 @@ def actualizar_estado_cotizacion(
             usuario_id=usuario_actual.id,
         )
 
+    # Si la actualización de estado fue realizada por el personal técnico o administrativo,
+    # notificar inmediatamente al cliente para que vea la novedad
+    if cotizacion.cliente and cotizacion.cliente.usuario:
+        cli_u = cotizacion.cliente.usuario
+        if usuario_actual.id != cli_u.id:
+            background_tasks.add_task(
+                ejecutar_tarea_notificacion_asincrona,
+                tipo_evento="cotizacion_actualizada",
+                datos={
+                    "cotizacion_id": cotizacion.id,
+                    "nuevo_estado": datos.estado,
+                    "cliente_nombre": cli_u.nombre_completo,
+                    "observacion": desc_observacion,
+                    "total": float(cotizacion.total or 0.0),
+                },
+                usuario_id=cli_u.id,
+            )
+
+    return _construir_respuesta_cotizacion(cotizacion)
+
+
+@router.delete(
+    "/{cotizacion_id}",
+    summary="Archivar o eliminar lógicamente una cotización (Solo Administrador / Personal)",
+)
+def archivar_cotizacion(
+    cotizacion_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(solo_personal),
+):
+    """Archiva la propuesta para mantener el panel limpio sin borrar el registro histórico de la base de datos."""
+    cotizacion = db.query(Cotizacion).filter(Cotizacion.id == cotizacion_id).first()
+    if not cotizacion:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Cotización #{cotizacion_id} no encontrada",
+        )
+
+    cotizacion.eliminado_en = datetime.now(timezone.utc)
+    hist = HistorialEstadoCotizacion(
+        cotizacion_id=cotizacion.id,
+        estado=cotizacion.estado,
+        usuario_id=usuario_actual.id,
+        usuario_nombre=usuario_actual.nombre_completo,
+        observacion="Cotización archivada por administración para optimizar la vista del panel.",
+    )
+    db.add(hist)
+    db.commit()
+    return {"mensaje": "Cotización archivada correctamente", "id": cotizacion_id}
+
+
+@router.patch(
+    "/{cotizacion_id}/restaurar",
+    response_model=CotizacionRespuesta,
+    summary="Restaurar una cotización archivada (Solo Administrador / Personal)",
+)
+def restaurar_cotizacion(
+    cotizacion_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(solo_personal),
+):
+    """Restaura una cotización previamente archivada para reactivarla en el embudo comercial activo."""
+    cotizacion = (
+        db.query(Cotizacion)
+        .options(
+            joinedload(Cotizacion.items),
+            joinedload(Cotizacion.cliente).joinedload(Cliente.usuario),
+            joinedload(Cotizacion.historial),
+        )
+        .filter(Cotizacion.id == cotizacion_id)
+        .first()
+    )
+    if not cotizacion:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Cotización #{cotizacion_id} no encontrada",
+        )
+
+    cotizacion.eliminado_en = None
+    hist = HistorialEstadoCotizacion(
+        cotizacion_id=cotizacion.id,
+        estado=cotizacion.estado,
+        usuario_id=usuario_actual.id,
+        usuario_nombre=usuario_actual.nombre_completo,
+        observacion="Cotización restaurada al embudo comercial activo por administración.",
+    )
+    db.add(hist)
+    db.commit()
+    db.refresh(cotizacion)
     return _construir_respuesta_cotizacion(cotizacion)
 
 

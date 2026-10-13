@@ -42,6 +42,16 @@ def formatear_plantilla_alerta(tipo_evento: str, datos: dict[str, Any]) -> str:
             f"• <b>Hora:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         )
 
+    elif tipo_evento == "cotizacion_actualizada":
+        return (
+            f"📋 <b>ACTUALIZACIÓN DE COTIZACIÓN #{datos.get('cotizacion_id')}</b>\n"
+            f"• <b>Cliente:</b> {datos.get('cliente_nombre', 'Cliente')}\n"
+            f"• <b>Nuevo Estado:</b> {str(datos.get('nuevo_estado', '')).upper()}\n"
+            f"• <b>Monto Total:</b> ${datos.get('total', 0):,.2f} COP\n"
+            f"• <b>Novedad:</b> {datos.get('observacion', 'Actualización de propuesta comercial')}\n"
+            f"• <b>Hora:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        )
+
     elif tipo_evento == "cambio_estado_ticket":
         return (
             f"🔄 <b>ACTUALIZACIÓN DE TICKET</b>\n"

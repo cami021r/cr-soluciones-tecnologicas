@@ -108,6 +108,7 @@ class CotizacionRespuesta(BaseModel):
     url_pdf: str | None = None
     fecha_vencimiento: date | None = None
     creado_en: datetime
+    eliminado_en: datetime | None = None
     items: list[ItemCotizacionRespuesta] = []
     historial: list[HistorialEstadoCotizacionRespuesta] = []
 

@@ -369,6 +369,36 @@ export const PanelQuotes: React.FC = () => {
                   </div>
                 )}
 
+                {/* 2.1 Banner de Novedad / Actualización Reciente de C&R */}
+                {cot.historial && cot.historial.length > 0 && (
+                  (() => {
+                    const lastHist = cot.historial[cot.historial.length - 1];
+                    return (
+                      <div className="flex items-start gap-3 p-3.5 rounded-xl bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-blue-50/90 border border-blue-200/90 text-xs shadow-xs">
+                        <div className="p-1 rounded-lg bg-blue-600 text-white shrink-0 mt-0.5">
+                          <Sparkles className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="space-y-0.5 flex-1">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="font-bold text-blue-950">
+                              Novedad en tu Cotización:
+                            </span>
+                            <span className="text-[11px] text-blue-600 font-medium">
+                              {new Date(lastHist.creado_en).toLocaleString("es-CO", {
+                                dateStyle: "short",
+                                timeStyle: "short",
+                              })}
+                            </span>
+                          </div>
+                          <p className="text-slate-700 font-medium">
+                            {lastHist.observacion || `Estado actualizado a ${lastHist.estado}`}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })()
+                )}
+
                 {/* 3. LÍNEA DE TIEMPO / STEPPER TIPO SEGUIMIENTO DE ENVÍO */}
                 {!isAlternateState ? (
                   <div className="pt-2 pb-1">
@@ -444,20 +474,26 @@ export const PanelQuotes: React.FC = () => {
                         </p>
                       ) : (
                         <p className="text-blue-700 font-medium">
-                          Has solicitado un ajuste a este presupuesto. El equipo comercial está recalculando costos y te notificará cuando la propuesta esté actualizada.
+                          Esta propuesta está en negociación o ajuste técnico. Nuestro equipo comercial ha recalculado los conceptos y puedes revisarlos, aceptarlos o solicitar nuevos requerimientos.
                         </p>
                       )}
                     </div>
                   </div>
                 )}
 
-                {/* 4. Botones de Decisión para Cotización Pendiente */}
-                {cot.estado === "pendiente" && (
-                  <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-blue-50/60 to-indigo-50/60 border border-blue-100">
+                {/* 4. Botones de Decisión para Cotización (Pendiente o En Proceso de Ajuste) */}
+                {["pendiente", "ajuste_solicitado", "en_ajuste"].includes(cot.estado) && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-blue-50/70 via-indigo-50/60 to-cyan-50/70 border border-blue-100 shadow-xs">
                     <div className="text-xs text-slate-700">
-                      <span className="font-bold">¿Deseas confirmar este presupuesto?</span>
+                      <span className="font-bold">
+                        {cot.estado === "pendiente"
+                          ? "¿Deseas confirmar este presupuesto?"
+                          : "Propuesta en revisión / negociación técnica"}
+                      </span>
                       <p className="text-[11px] text-slate-500">
-                        Al aceptarlo, gerencia revisará el cronograma para contactarte y coordinar la ejecución técnica.
+                        {cot.estado === "pendiente"
+                          ? "Al aceptarlo, gerencia revisará el cronograma para contactarte y coordinar la ejecución técnica."
+                          : "Puedes aceptar los valores actuales de la propuesta o solicitar un nuevo ajuste si requieres modificaciones."}
                       </p>
                     </div>
 
@@ -468,7 +504,9 @@ export const PanelQuotes: React.FC = () => {
                         className="px-4 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50"
                       >
                         <CheckCircle2 className="w-4 h-4" />
-                        <span>Aceptar Cotización</span>
+                        <span>
+                          {cot.estado === "pendiente" ? "Aceptar Cotización" : "Aceptar Propuesta Actual"}
+                        </span>
                       </button>
 
                       <button
@@ -480,7 +518,9 @@ export const PanelQuotes: React.FC = () => {
                         className="px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors flex items-center gap-1.5 disabled:opacity-50"
                       >
                         <RotateCcw className="w-3.5 h-3.5 text-blue-600" />
-                        <span>Solicitar Ajuste</span>
+                        <span>
+                          {cot.estado === "pendiente" ? "Solicitar Ajuste" : "Solicitar Nuevo Ajuste"}
+                        </span>
                       </button>
 
                       <button

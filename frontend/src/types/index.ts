@@ -87,6 +87,7 @@ export interface Quote {
   url_pdf?: string;
   fecha_vencimiento?: string;
   creado_en: string;
+  eliminado_en?: string;
   items?: QuoteItem[];
   historial?: QuoteHistory[];
 }
