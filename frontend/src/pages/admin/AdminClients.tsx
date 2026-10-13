@@ -13,6 +13,8 @@ import {
   Save,
   QrCode,
   Trash2,
+  Briefcase,
+  Archive,
 } from "lucide-react";
 import api from "../../services/api";
 
@@ -28,6 +30,7 @@ interface ClienteResumen {
   nombre_empresa: string | null;
   tipo: string;
   documento: string;
+  activo?: boolean;
   creado_en: string;
   total_cotizaciones: number;
   total_cotizaciones_aceptadas: number;
@@ -41,6 +44,7 @@ interface ClienteDetalle extends ClienteResumen {
   cotizaciones: any[];
   equipos: any[];
   tickets: any[];
+  contratos: any[];
 }
 
 export const AdminClients: React.FC = () => {
@@ -52,7 +56,9 @@ export const AdminClients: React.FC = () => {
   // Ficha detalle
   const [selectedCliente, setSelectedCliente] = useState<ClienteDetalle | null>(null);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
-  const [activeTab, setActiveTab] = useState<"cotizaciones" | "equipos" | "tickets">("cotizaciones");
+  const [activeTab, setActiveTab] = useState<
+    "cotizaciones" | "equipos" | "tickets" | "contratos"
+  >("cotizaciones");
 
   // Modal editar
   const [showEditModal, setShowEditModal] = useState(false);
@@ -60,14 +66,20 @@ export const AdminClients: React.FC = () => {
     nombre: "",
     apellido: "",
     nombre_empresa: "",
+    tipo: "persona",
     documento: "",
     telefono: "",
     telefono_alt: "",
+    activo: true,
   });
   const [savingEdit, setSavingEdit] = useState(false);
 
   // Modal QR
-  const [qrModalItem, setQrModalItem] = useState<{ marca: string; modelo: string; qr: string } | null>(null);
+  const [qrModalItem, setQrModalItem] = useState<{
+    marca: string;
+    modelo: string;
+    qr: string;
+  } | null>(null);
 
   const fetchClientes = async () => {
     try {
@@ -93,9 +105,11 @@ export const AdminClients: React.FC = () => {
         nombre: res.data.nombre || "",
         apellido: res.data.apellido || "",
         nombre_empresa: res.data.nombre_empresa || "",
+        tipo: res.data.tipo || "persona",
         documento: res.data.documento || "",
         telefono: res.data.telefono || "",
         telefono_alt: res.data.telefono_alt || "",
+        activo: res.data.activo !== false,
       });
     } catch (e) {
       alert("Error al cargar la ficha del cliente.");
@@ -122,7 +136,11 @@ export const AdminClients: React.FC = () => {
   };
 
   const handleDeleteCliente = async (clienteId: number, nombre: string) => {
-    if (!confirm(`¿Estás seguro de que deseas eliminar al cliente "${nombre}"? Esta acción desactivará su cuenta y su ficha.`)) {
+    if (
+      !confirm(
+        `¿Estás seguro de que deseas eliminar al cliente "${nombre}"? Esta acción desactivará su cuenta y su ficha.`
+      )
+    ) {
       return;
     }
     try {
@@ -136,6 +154,33 @@ export const AdminClients: React.FC = () => {
     }
   };
 
+  const handleCambiarEstadoContrato = async (contratoId: number, nuevoEstado: string) => {
+    if (!selectedCliente) return;
+    try {
+      await api.patch(`/finanzas/contratos/${contratoId}`, { estado: nuevoEstado });
+      await handleSelectCliente(selectedCliente.id);
+    } catch (e: any) {
+      alert(e.response?.data?.detail || "Error al actualizar el estado del contrato.");
+    }
+  };
+
+  const handleArchivarContrato = async (contratoId: number) => {
+    if (!selectedCliente) return;
+    if (
+      !confirm(
+        `¿Deseas archivar el contrato #${contratoId}? Se marcará como finalizado y se ocultará para mantener el panel limpio.`
+      )
+    ) {
+      return;
+    }
+    try {
+      await api.delete(`/finanzas/contratos/${contratoId}`);
+      await handleSelectCliente(selectedCliente.id);
+    } catch (e: any) {
+      alert(e.response?.data?.detail || "Error al archivar el contrato.");
+    }
+  };
+
   const cleanPhoneForWhatsApp = (phone?: string | null) => {
     if (!phone) return "";
     const digits = phone.replace(/\D/g, "");
@@ -145,7 +190,10 @@ export const AdminClients: React.FC = () => {
   };
 
   const filteredClientes = clientes.filter((c) => {
-    if (filterType !== "todos" && c.tipo !== filterType) return false;
+    if (filterType === "activos" && c.activo === false) return false;
+    if (filterType === "inactivos" && c.activo !== false) return false;
+    if (filterType === "empresa" && c.tipo !== "empresa") return false;
+    if (filterType === "persona" && c.tipo !== "persona") return false;
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return (
@@ -170,7 +218,7 @@ export const AdminClients: React.FC = () => {
             Gestión & Directorio de Clientes
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 mt-1">
-            Consulta fichas de contacto, historial de compras, contratos de equipos arrendados y soporte técnico.
+            Consulta fichas de contacto, historial de compras, contratos de renta vigentes o finalizados y soporte técnico.
           </p>
         </div>
       </div>
@@ -188,64 +236,70 @@ export const AdminClients: React.FC = () => {
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          {["todos", "empresa", "persona"].map((tipo) => (
+        <div className="flex flex-wrap items-center gap-2">
+          {[
+            { id: "todos", label: "Todos" },
+            { id: "activos", label: "Activos" },
+            { id: "inactivos", label: "Finalizados / Inactivos" },
+            { id: "empresa", label: "Empresas" },
+            { id: "persona", label: "Personas" },
+          ].map((item) => (
             <button
-              key={tipo}
-              onClick={() => setFilterType(tipo)}
+              key={item.id}
+              onClick={() => setFilterType(item.id)}
               className={`px-3.5 py-2 rounded-xl text-xs font-semibold capitalize transition-all ${
-                filterType === tipo
+                filterType === item.id
                   ? "bg-blue-600 text-white shadow-xs"
                   : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
             >
-              {tipo === "todos" ? "Todos" : tipo === "empresa" ? "Empresas" : "Personas"}
+              {item.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Grid: Listado de Clientes y Ficha de Detalle */}
+      {/* Grid Principal: Lista a la izquierda (5 columnas), Detalle a la derecha (7 columnas) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Columna Izquierda: Listado (5 columnas) */}
+        {/* Columna Izquierda: Listado de Clientes */}
         <div className="lg:col-span-5 space-y-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-600 block px-1">
-            Clientes Registrados ({filteredClientes.length})
-          </span>
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs font-bold text-slate-700">
+              Clientes Registrados ({filteredClientes.length})
+            </span>
+            <span className="text-[11px] text-slate-400">Clic para ver ficha completa</span>
+          </div>
 
           {loading ? (
-            <div className="card-glass p-8 text-center text-xs text-slate-500 border border-blue-100">
+            <div className="card-glass p-12 text-center text-xs text-slate-500 border border-blue-100">
               Cargando directorio de clientes...
             </div>
           ) : filteredClientes.length === 0 ? (
-            <div className="card-glass p-12 text-center text-xs text-slate-500 border border-blue-100 space-y-2">
-              <Users className="w-8 h-8 text-slate-400 mx-auto" />
-              <p className="font-semibold text-slate-700">No se encontraron clientes</p>
-              <p>Intenta con otros términos de búsqueda.</p>
+            <div className="card-glass p-12 text-center text-xs text-slate-500 border border-blue-100">
+              No se encontraron clientes bajo este criterio.
             </div>
           ) : (
-            <div className="space-y-3 max-h-[700px] overflow-y-auto pr-1">
+            <div className="space-y-2.5 max-h-[750px] overflow-y-auto pr-1">
               {filteredClientes.map((c) => {
                 const isSelected = selectedCliente?.id === c.id;
-
                 return (
                   <div
                     key={c.id}
                     onClick={() => handleSelectCliente(c.id)}
-                    className={`card-glass p-4 cursor-pointer transition-all border ${
+                    className={`card-glass p-4 border rounded-2xl cursor-pointer transition-all space-y-3 ${
                       isSelected
-                        ? "border-blue-500 bg-blue-50/40 shadow-md ring-1 ring-blue-400"
-                        : "border-blue-100/80 hover:border-blue-200"
+                        ? "border-blue-500 bg-blue-50/40 shadow-sm"
+                        : "border-slate-200 hover:border-blue-300 hover:bg-white"
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs uppercase shrink-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-600 text-white font-bold text-sm flex items-center justify-center uppercase shrink-0">
                           {c.nombre.charAt(0)}
                           {c.apellido.charAt(0)}
                         </div>
                         <div>
-                          <h4 className="text-xs font-bold text-slate-900 leading-tight">
+                          <h4 className="font-bold text-slate-900 text-sm leading-tight">
                             {c.nombre_completo}
                           </h4>
                           <span className="text-[11px] text-slate-500">
@@ -254,15 +308,26 @@ export const AdminClients: React.FC = () => {
                         </div>
                       </div>
 
-                      <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border shrink-0 ${
-                          c.tipo === "empresa"
-                            ? "bg-purple-50 text-purple-700 border-purple-200"
-                            : "bg-blue-50 text-blue-700 border-blue-200"
-                        }`}
-                      >
-                        {c.tipo}
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border ${
+                            c.tipo === "empresa"
+                              ? "bg-purple-50 text-purple-700 border-purple-200"
+                              : "bg-blue-50 text-blue-700 border-blue-200"
+                          }`}
+                        >
+                          {c.tipo}
+                        </span>
+                        {c.activo === false ? (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase bg-slate-100 text-slate-600 border border-slate-200">
+                            Finalizado
+                          </span>
+                        ) : (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Activo
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-[11px] text-slate-600">
@@ -317,6 +382,15 @@ export const AdminClients: React.FC = () => {
                       <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200">
                         {selectedCliente.tipo}
                       </span>
+                      {selectedCliente.activo === false ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase bg-slate-100 text-slate-600 border border-slate-200">
+                          Finalizado / Inactivo
+                        </span>
+                      ) : (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          Activo
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-slate-500">
                       {selectedCliente.nombre_empresa ? (
@@ -339,7 +413,9 @@ export const AdminClients: React.FC = () => {
                     <span>Editar Datos</span>
                   </button>
                   <button
-                    onClick={() => handleDeleteCliente(selectedCliente.id, selectedCliente.nombre_completo)}
+                    onClick={() =>
+                      handleDeleteCliente(selectedCliente.id, selectedCliente.nombre_completo)
+                    }
                     className="px-3.5 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
                     title="Desactivar y eliminar este cliente"
                   >
@@ -420,10 +496,10 @@ export const AdminClients: React.FC = () => {
 
               {/* Pestañas de Historial */}
               <div className="space-y-4 pt-2">
-                <div className="flex border-b border-slate-200">
+                <div className="flex flex-wrap border-b border-slate-200 gap-1">
                   <button
                     onClick={() => setActiveTab("cotizaciones")}
-                    className={`px-4 py-2 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${
+                    className={`px-3.5 py-2 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${
                       activeTab === "cotizaciones"
                         ? "border-blue-600 text-blue-600"
                         : "border-transparent text-slate-500 hover:text-slate-700"
@@ -435,26 +511,38 @@ export const AdminClients: React.FC = () => {
 
                   <button
                     onClick={() => setActiveTab("equipos")}
-                    className={`px-4 py-2 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${
+                    className={`px-3.5 py-2 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${
                       activeTab === "equipos"
                         ? "border-blue-600 text-blue-600"
                         : "border-transparent text-slate-500 hover:text-slate-700"
                     }`}
                   >
                     <Box className="w-3.5 h-3.5" />
-                    <span>Equipos Comprados / Arrendados ({selectedCliente.equipos.length})</span>
+                    <span>Equipos ({selectedCliente.equipos.length})</span>
                   </button>
 
                   <button
                     onClick={() => setActiveTab("tickets")}
-                    className={`px-4 py-2 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${
+                    className={`px-3.5 py-2 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${
                       activeTab === "tickets"
                         ? "border-blue-600 text-blue-600"
                         : "border-transparent text-slate-500 hover:text-slate-700"
                     }`}
                   >
                     <LifeBuoy className="w-3.5 h-3.5" />
-                    <span>Tickets de Soporte ({selectedCliente.tickets.length})</span>
+                    <span>Tickets ({selectedCliente.tickets.length})</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab("contratos")}
+                    className={`px-3.5 py-2 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${
+                      activeTab === "contratos"
+                        ? "border-blue-600 text-blue-600"
+                        : "border-transparent text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    <Briefcase className="w-3.5 h-3.5" />
+                    <span>Contratos ({selectedCliente.contratos?.length || 0})</span>
                   </button>
                 </div>
 
@@ -581,6 +669,110 @@ export const AdminClients: React.FC = () => {
                     )}
                   </div>
                 )}
+
+                {/* Pestaña de Contratos */}
+                {activeTab === "contratos" && (
+                  <div className="space-y-2.5 max-h-[320px] overflow-y-auto">
+                    {!selectedCliente.contratos || selectedCliente.contratos.length === 0 ? (
+                      <p className="text-xs text-slate-400 py-6 text-center">
+                        No hay contratos de renta o compra registrados para este cliente.
+                      </p>
+                    ) : (
+                      selectedCliente.contratos.map((con: any) => {
+                        const esActivo = con.estado === "activo";
+                        const esFinalizado = con.estado === "finalizado";
+                        return (
+                          <div
+                            key={con.id}
+                            className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs transition-colors ${
+                              esFinalizado
+                                ? "bg-slate-50 border-slate-200/80 opacity-80"
+                                : "bg-white border-blue-200 shadow-2xs"
+                            }`}
+                          >
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-slate-900">
+                                  Contrato #{con.id} ({con.tipo?.toUpperCase()})
+                                </span>
+                                <span
+                                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border ${
+                                    esActivo
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                      : esFinalizado
+                                      ? "bg-blue-50 text-blue-700 border-blue-200"
+                                      : con.estado === "vencido"
+                                      ? "bg-rose-50 text-rose-700 border-rose-200"
+                                      : "bg-slate-100 text-slate-600 border-slate-200"
+                                  }`}
+                                >
+                                  {con.estado}
+                                </span>
+                              </div>
+
+                              <div className="text-[11px] text-slate-500 flex flex-wrap gap-x-3">
+                                <span>
+                                  <strong>Inicio:</strong>{" "}
+                                  {con.fecha_inicio
+                                    ? new Date(con.fecha_inicio).toLocaleDateString("es-CO")
+                                    : "N/A"}
+                                </span>
+                                <span>
+                                  <strong>Vence:</strong>{" "}
+                                  {con.fecha_vencimiento
+                                    ? new Date(con.fecha_vencimiento).toLocaleDateString("es-CO")
+                                    : "Indefinido"}
+                                </span>
+                              </div>
+
+                              {con.observaciones && (
+                                <p className="text-[10px] text-slate-500 italic">
+                                  "{con.observaciones}"
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="flex items-center justify-between sm:justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                              <span className="font-black text-slate-900 text-sm sm:mr-2">
+                                ${Number(con.valor_total).toLocaleString()} COP
+                              </span>
+
+                              {esActivo ? (
+                                <button
+                                  onClick={() =>
+                                    handleCambiarEstadoContrato(con.id, "finalizado")
+                                  }
+                                  className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold text-[11px] transition-colors"
+                                  title="Marcar este contrato como finalizado"
+                                >
+                                  Finalizar
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() =>
+                                    handleCambiarEstadoContrato(con.id, "activo")
+                                  }
+                                  className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold text-[11px] transition-colors"
+                                  title="Reactivar este contrato"
+                                >
+                                  Reactivar
+                                </button>
+                              )}
+
+                              <button
+                                onClick={() => handleArchivarContrato(con.id)}
+                                className="p-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                                title="Archivar y retirar de la vista"
+                              >
+                                <Archive className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -590,7 +782,7 @@ export const AdminClients: React.FC = () => {
                 Selecciona un cliente de la lista
               </h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Podrás ver sus datos de contacto, llamar por teléfono, enviar WhatsApp o correo, y revisar su historial de cotizaciones, equipos y tickets.
+                Podrás ver sus datos de contacto, contratos activos y finalizados, equipos asignados y tickets.
               </p>
             </div>
           )}
@@ -613,7 +805,7 @@ export const AdminClients: React.FC = () => {
                 Editar Datos de {selectedCliente.nombre_completo}
               </h3>
               <p className="text-xs text-slate-500">
-                Actualiza datos de contacto o razón social de la empresa.
+                Actualiza datos de contacto, razón social o estado del cliente.
               </p>
             </div>
 
@@ -641,8 +833,44 @@ export const AdminClients: React.FC = () => {
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Tipo de Cliente
+                  </label>
+                  <select
+                    value={editFormData.tipo}
+                    onChange={(e) => setEditFormData({ ...editFormData, tipo: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 bg-white"
+                  >
+                    <option value="persona">Persona Natural</option>
+                    <option value="empresa">Empresa / Corporativo</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Estado en Plataforma
+                  </label>
+                  <select
+                    value={editFormData.activo ? "activo" : "inactivo"}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        activo: e.target.value === "activo",
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 bg-white"
+                  >
+                    <option value="activo">Activo (Vigente)</option>
+                    <option value="inactivo">Inactivo / Finalizado</option>
+                  </select>
+                </div>
+              </div>
+
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Empresa / Razón Social</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Empresa / Razón Social
+                </label>
                 <input
                   type="text"
                   placeholder="Ej. Soluciones TI SAS"
@@ -656,32 +884,44 @@ export const AdminClients: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Documento / NIT</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Documento / NIT
+                  </label>
                   <input
                     type="text"
                     required
                     value={editFormData.documento}
-                    onChange={(e) => setEditFormData({ ...editFormData, documento: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, documento: e.target.value })
+                    }
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Teléfono Principal</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Teléfono Principal
+                  </label>
                   <input
                     type="tel"
                     value={editFormData.telefono}
-                    onChange={(e) => setEditFormData({ ...editFormData, telefono: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, telefono: e.target.value })
+                    }
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Teléfono Alternativo (Opcional)</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Teléfono Alternativo (Opcional)
+                </label>
                 <input
                   type="tel"
                   value={editFormData.telefono_alt}
-                  onChange={(e) => setEditFormData({ ...editFormData, telefono_alt: e.target.value })}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, telefono_alt: e.target.value })
+                  }
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800"
                 />
               </div>

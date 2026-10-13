@@ -97,19 +97,21 @@ def consultar_ia(mensajes: list[dict[str, str]], contexto_catalogo: str) -> str:
 
 
 def _consultar_gemini(api_key: str, prompt_sistema: str, mensajes: list[dict[str, str]]) -> str:
-    """Llama a Google Gemini vía HTTP REST API sin necesidad de dependencias adicionales."""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
+    """Llama a Google Gemini vía HTTP REST API usando la clave provista y x-goog-api-key."""
+    headers = {
+        "Content-Type": "application/json",
+        "x-goog-api-key": api_key,
+    }
 
     # Formatear el historial para Gemini
     contents = []
-    # El prompt del sistema se incluye como contexto inicial
     contents.append({
         "role": "user",
-        "parts": [{"text": f"[INSTRUCCIÓN DEL SISTEMA]:\n{prompt_sistema}"}]
+        "parts": [{"text": f"[INSTRUCCIÓN DEL SISTEMA]:\n{prompt_sistema}"}],
     })
     contents.append({
         "role": "model",
-        "parts": [{"text": "Entendido. Soy el Asesor Técnico y Comercial de C&R Soluciones. Seguiré estrictamente el catálogo y las directrices anti-alucinación."}]
+        "parts": [{"text": "Entendido. Soy el Asesor Técnico y Comercial de C&R Soluciones. Seguiré estrictamente el catálogo y las directrices anti-alucinación."}],
     })
 
     for m in mensajes:
@@ -125,16 +127,28 @@ def _consultar_gemini(api_key: str, prompt_sistema: str, mensajes: list[dict[str
         },
     }
 
-    with httpx.Client(timeout=35.0) as client:
-        res = client.post(url, json=payload)
-        res.raise_for_status()
-        data = res.json()
-        candidates = data.get("candidates", [])
-        if candidates and "content" in candidates[0]:
-            parts = candidates[0]["content"].get("parts", [])
-            if parts:
-                return parts[0].get("text", "")
-        raise ValueError("Respuesta vacía de Gemini API")
+    modelos = ["gemini-flash-lite-latest", "gemini-flash-latest"]
+    ultimo_error = None
+
+    for mod in modelos:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{mod}:generateContent"
+        try:
+            with httpx.Client(timeout=35.0) as client:
+                res = client.post(url, headers=headers, json=payload)
+                if res.status_code == 200:
+                    data = res.json()
+                    candidates = data.get("candidates", [])
+                    if candidates and "content" in candidates[0]:
+                        parts = candidates[0]["content"].get("parts", [])
+                        if parts:
+                            return parts[0].get("text", "")
+                ultimo_error = f"{mod} respondió {res.status_code}: {res.text[:150]}"
+                logger.warning(f"Fallo con {mod}: {ultimo_error}")
+        except Exception as e:
+            ultimo_error = str(e)
+            logger.warning(f"Excepción consultando {mod}: {e}")
+
+    raise ValueError(f"Fallo en Gemini API con modelos {modelos}: {ultimo_error}")
 
 
 def _consultar_anthropic(api_key: str, prompt_sistema: str, mensajes: list[dict[str, str]]) -> str:

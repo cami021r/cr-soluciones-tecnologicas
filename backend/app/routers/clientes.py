@@ -6,7 +6,7 @@ from sqlalchemy import func
 from app.database import get_db
 from app.core.dependencies import requiere_roles
 from app.models.cotizaciones import Cliente, Cotizacion
-from app.models.inventario import Equipo
+from app.models.inventario import Contrato, Equipo
 from app.models.tickets import Ticket
 from app.models.usuarios import Usuario
 from app.schemas.clientes import (
@@ -25,6 +25,7 @@ solo_administradores = requiere_roles("Administrador")
 def listar_clientes(
     buscar: str | None = Query(default=None, description="Buscar por nombre, email, teléfono, empresa o documento"),
     tipo: str | None = Query(default=None, description="persona o empresa"),
+    activo: bool | None = Query(default=None, description="Filtrar por clientes activos o inactivos"),
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(solo_personal),
 ):
@@ -35,6 +36,9 @@ def listar_clientes(
     consulta = db.query(Cliente).join(Usuario, Cliente.usuario_id == Usuario.id).filter(
         Cliente.eliminado_en.is_(None)
     )
+
+    if activo is not None:
+        consulta = consulta.filter(Usuario.activo == activo)
 
     if tipo:
         consulta = consulta.filter(Cliente.tipo == tipo)
@@ -87,6 +91,7 @@ def listar_clientes(
                 nombre_empresa=c.nombre_empresa,
                 tipo=c.tipo,
                 documento=c.documento,
+                activo=u.activo if u else True,
                 creado_en=c.creado_en,
                 total_cotizaciones=total_cot,
                 total_cotizaciones_aceptadas=total_aceptadas,
@@ -183,6 +188,26 @@ def detalle_cliente(
         for tk in tickets
     ]
 
+    # Contratos de renta o compra
+    contratos = (
+        db.query(Contrato)
+        .filter(Contrato.cliente_id == cliente.id, Contrato.eliminado_en.is_(None))
+        .order_by(Contrato.id.desc())
+        .all()
+    )
+    lista_con = [
+        {
+            "id": con.id,
+            "tipo": con.tipo,
+            "estado": con.estado,
+            "fecha_inicio": con.fecha_inicio.isoformat() if con.fecha_inicio else None,
+            "fecha_vencimiento": con.fecha_vencimiento.isoformat() if con.fecha_vencimiento else None,
+            "valor_total": float(con.valor_total),
+            "observaciones": con.observaciones,
+        }
+        for con in contratos
+    ]
+
     return ClienteDetalleRespuesta(
         id=cliente.id,
         usuario_id=cliente.usuario_id,
@@ -195,11 +220,13 @@ def detalle_cliente(
         nombre_empresa=cliente.nombre_empresa,
         tipo=cliente.tipo,
         documento=cliente.documento,
+        activo=u.activo if u else True,
         creado_en=cliente.creado_en,
         total_comprado=total_comprado,
         cotizaciones=lista_cot,
         equipos=lista_eq,
         tickets=lista_tk,
+        contratos=lista_con,
     )
 
 
@@ -237,6 +264,10 @@ def editar_cliente(
             u.apellido = datos.apellido.strip()
         if datos.telefono is not None:
             u.telefono = datos.telefono.strip() or None
+        if datos.email is not None:
+            u.email = datos.email.strip()
+        if datos.activo is not None:
+            u.activo = datos.activo
 
     db.commit()
     db.refresh(cliente)

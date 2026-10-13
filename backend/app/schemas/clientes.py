@@ -13,6 +13,7 @@ class ClienteActualizar(BaseModel):
     tipo: TipoCliente | None = None
     documento: str | None = None
     telefono_alt: str | None = None
+    activo: bool | None = None
 
 class ClienteItemResumen(BaseModel):
     id: int
@@ -26,6 +27,7 @@ class ClienteItemResumen(BaseModel):
     nombre_empresa: str | None = None
     tipo: str
     documento: str
+    activo: bool = True
     creado_en: datetime
     total_cotizaciones: int = 0
     total_cotizaciones_aceptadas: int = 0
@@ -46,8 +48,10 @@ class ClienteDetalleRespuesta(BaseModel):
     nombre_empresa: str | None = None
     tipo: str
     documento: str
+    activo: bool = True
     creado_en: datetime
     total_comprado: float = 0.0
     cotizaciones: list[dict] = []
     equipos: list[dict] = []
     tickets: list[dict] = []
+    contratos: list[dict] = []

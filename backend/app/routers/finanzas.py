@@ -374,6 +374,27 @@ def actualizar_contrato(
     return evaluar_contrato_expiracion(contrato)
 
 
+@router.delete(
+    "/contratos/{contrato_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Archivar o eliminar un contrato",
+)
+def eliminar_contrato(
+    contrato_id: int,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(solo_admin),
+):
+    """Permite al administrador archivar contratos finalizados o cancelados."""
+    contrato = db.query(Contrato).filter(Contrato.id == contrato_id).first()
+    if not contrato:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contrato no encontrado")
+
+    contrato.eliminado_en = datetime.now(timezone.utc)
+    contrato.estado = "finalizado"
+    db.commit()
+    return {"mensaje": f"Contrato #{contrato_id} archivado exitosamente"}
+
+
 # ===========================================================================
 # PASO 8.5: REPORTES MENSUALES Y AGREGACIÓN DE COSTOS
 # ===========================================================================
