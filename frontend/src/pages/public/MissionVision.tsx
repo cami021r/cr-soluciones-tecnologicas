@@ -27,9 +27,9 @@ export const MissionVision: React.FC = () => {
       icono: Award,
     },
     {
-      titulo: "Trazabilidad Digital Continua",
+      titulo: "Calidad e Ingeniería Certificada",
       descripcion:
-        "Cada activo técnico recibe una etiqueta con código QR para que cualquier persona conozca su garantía y bitácora técnica de mantenimiento.",
+        "Cada punto de red, enlace inalámbrico, cámara o mantenimiento se entrega probado, certificado y con respaldo documental y garantía escrita.",
       icono: CheckCircle2,
     },
     {
@@ -84,7 +84,7 @@ export const MissionVision: React.FC = () => {
             </h2>
 
             <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-              Brindar servicios de infraestructura tecnológica, cableado estructurado certificado, videovigilancia CCTV y soporte informático a hogares, emprendimientos y PYMEs en Bogotá, eliminando la informalidad del sector a través de una plataforma digital con Inteligencia Artificial y trazabilidad con códigos QR, garantizando precios justos, respaldo legal y excelencia técnica en cada servicio prestado.
+              Brindar servicios de infraestructura tecnológica, cableado estructurado certificado, redes Wi-Fi multi-banda, videovigilancia CCTV y soporte informático a hogares, emprendimientos y PYMEs en Bogotá, eliminando la informalidad del sector a través de una plataforma digital con Inteligencia Artificial, garantizando precios justos, respaldo legal y excelencia técnica en cada servicio prestado.
             </p>
           </div>
 
@@ -108,7 +108,7 @@ export const MissionVision: React.FC = () => {
             </h2>
 
             <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-              Consolidarnos para el año 2030 como la microempresa líder y referente en Bogotá y Cundinamarca en integración de redes, seguridad electrónica y mantenimiento TI para el sector microempresarial, reconocida por su modelo de atención digital transparente, la alta cualificación técnica de su talento humano y su plataforma tecnológica de autoservicio para cotizaciones e inventarios inteligentes.
+              Consolidarnos para el año 2030 como la microempresa líder y referente en Bogotá y Cundinamarca en integración de redes, seguridad electrónica y mantenimiento TI para el sector microempresarial, reconocida por su modelo de atención digital transparente, la alta cualificación técnica de su talento humano y su plataforma tecnológica de autoservicio para cotizaciones inteligentes.
             </p>
           </div>
 

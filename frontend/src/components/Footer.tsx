@@ -12,7 +12,7 @@ export const Footer: React.FC = () => {
           <div className="lg:col-span-2 space-y-4">
             <Logo size="lg" />
             <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-sm pt-2">
-              Infraestructura TI profesional, cableado estructurado Cat6 certificado, videovigilancia CCTV, conmutación Wi-Fi 6 y soporte técnico para hogares, empresas y PYMEs en Bogotá.
+              Infraestructura TI profesional, cableado estructurado certificado, videovigilancia CCTV, redes Wi-Fi (2.4 GHz, 5 GHz y 6 GHz), conmutación y soporte técnico para hogares, empresas y PYMEs en Bogotá.
             </p>
             <div className="text-[11px] text-slate-500 border-l-2 border-blue-500 pl-3 pt-1">
               Proyecto SENA — Ficha 2834855 (ADSO) | Camila Andrea Quintero Roa
@@ -69,11 +69,10 @@ export const Footer: React.FC = () => {
               Soluciones
             </h4>
             <ul className="space-y-2 text-xs text-slate-600">
-              <li>Cableado Cat6 & Patch Panels Panduit</li>
+              <li>Cableado Estructurado & Racks</li>
               <li>CCTV Hikvision / Dahua ColorVu</li>
-              <li>Wi-Fi 6 & Conmutación Ruijie Reyee</li>
+              <li>Redes Wi-Fi (2.4 / 5 / 6 GHz) & Switching</li>
               <li>Mantenimiento Hardware y Servidores</li>
-              <li>Etiquetado y Trazabilidad con QR</li>
               <li>Generación Formal de Cotizaciones PDF</li>
             </ul>
           </div>

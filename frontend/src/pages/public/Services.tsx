@@ -1,68 +1,77 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Network,
   Camera,
   Radio,
   Wrench,
-  QrCode,
   CheckCircle2,
   Sparkles,
   ShieldCheck,
+  ZoomIn,
+  X,
 } from "lucide-react";
 
 export const Services: React.FC = () => {
+  const [imagenAmpliada, setImagenAmpliada] = useState<{ src: string; alt: string } | null>(null);
+
   const serviciosDetallados = [
     {
       id: "cableado",
-      titulo: "Cableado Estructurado Cat6 y Centros de Cómputo",
+      titulo: "Cableado Estructurado y Centros de Cómputo",
       categoria: "Infraestructura Física",
       icono: Network,
       color: "from-blue-500 to-indigo-600",
       descripcion:
-        "Diseño, instalación y rotulación de cableado de cobre y fibra óptica para oficinas, locales y bodegas en Bogotá. Cumplimos estrictamente las normas ANSI/TIA/EIA 568.C e ISO/IEC 11801.",
+        "Diseño, instalación, reestructuración de racks y rotulación de cableado de cobre (Cat5e, Cat6, Cat6A, Cat7) y fibra óptica para oficinas, locales y bodegas en Bogotá. Cumplimos estrictamente las normas ANSI/TIA/EIA 568 e ISO/IEC 11801.",
       puntosClave: [
-        "Tendido y peinado con insumos Panduit y Siemon",
-        "Conectorización de Patch Panels y Jacks RJ45 certificados",
-        "Organización y marquillado estandarizado TIA-606",
-        "Pruebas de atenuación, continuidad y velocidad gigabit",
+        "Tendido y peinado en todas las categorías de cableado estructurado",
+        "Conectorización de Patch Panels, organizadores y Jacks RJ45 certificados",
+        "Reorganización integral de gabinetes (Antes y Después garantizado)",
+        "Organización y marquillado estandarizado bajo norma TIA-606",
         "12 meses de garantía directa de mano de obra",
       ],
       aplicaciones: "PYMEs, consultorios, oficinas corporativas, bodegas y locales comerciales.",
+      antesDespues: {
+        antes: "/images/proyectos/cableado-antes.jpg",
+        despues: "/images/proyectos/cableado-despues.jpg",
+      },
     },
     {
       id: "cctv",
-      titulo: "Sistemas de Videovigilancia CCTV y Cámaras IP",
-      categoria: "Seguridad Electrónica",
+      titulo: "Sistemas de Videovigilancia CCTV, Cámaras IP y Control de Acceso",
+      categoria: "Seguridad Electrónica & Norma EMT",
       icono: Camera,
       color: "from-indigo-500 to-violet-600",
       descripcion:
-        "Circuitos cerrados de televisión analógicos e IP de alta definición (4MP / 4K) con marcas líderes mundiales como Hikvision y Dahua Technology para monitoreo continuo 24/7.",
+        "Circuitos cerrados de televisión IP/HD (2MP, 4MP y 4K) y sistemas de control de acceso biométrico facial con electroimanes y botones no-touch, instalados bajo norma técnica con tubería metálica EMT y cajas de paso.",
       puntosClave: [
-        "Tecnología ColorVu y StarLight para visión nocturna a color",
-        "Configuración de NVRs/DVRs con compresión eficiente H.265+",
-        "Acceso remoto en tiempo real desde smartphones y computadores",
-        "Detección de movimiento inteligente con filtro humano/vehículo",
-        "Canalizaciones seguras en tubería EMT o canaleta plástica",
+        "Cámaras Hikvision y Dahua con visión nocturna a color ColorVu / StarLight",
+        "Control de acceso biométrico facial, tarjeta RFID, electroimán y botón LED",
+        "Canalización certificada en tubería metálica EMT y cajas conduleta",
+        "Configuración de NVRs/DVRs y acceso remoto en tiempo real desde celular",
+        "Detección inteligente de movimiento con filtro humano/vehículo",
       ],
-      aplicaciones: "Conjuntos residenciales, plantas industriales, almacenes, colegios y empresas.",
+      aplicaciones: "Oficinas corporativas, consultorios, conjuntos residenciales, bodegas y locales comerciales.",
+      imagen: "/images/proyectos/cctv-norma-emt.jpg",
     },
     {
       id: "wifi",
-      titulo: "Redes Wi-Fi 6 de Alta Densidad y Conmutación",
-      categoria: "Conectividad Inalámbrica",
+      titulo: "Redes Wi-Fi (2.4 GHz, 5 GHz y 6 GHz) y Conmutación",
+      categoria: "Conectividad Inalámbrica & Switching",
       icono: Radio,
       color: "from-violet-500 to-purple-600",
       descripcion:
-        "Despliegue de redes inalámbricas empresariales con Access Points Ruijie Reyee. Eliminamos zonas muertas, caídas de señal y congestión por múltiples dispositivos conectados.",
+        "Despliegue de redes inalámbricas empresariales multi-banda (2.4 GHz, 5 GHz y Wi-Fi 6) y conmutadores administrables. Eliminamos zonas muertas, caídas de señal y congestión por múltiples dispositivos conectados.",
       puntosClave: [
-        "Roaming continuo 802.11k/v/r sin cortes al desplazarse",
-        "Switches PoE Gigabit para alimentación de cámaras y APs",
-        "Portal cautivo para clientes con control de ancho de banda",
-        "Segmentación de redes VLAN para aislar datos sensibles",
-        "Gestión centralizada en la nube Ruijie Cloud sin costo",
+        "Cobertura simultánea en bandas 2.4 GHz (alcance), 5 GHz y 6 GHz (velocidad)",
+        "Roaming continuo 802.11k/v/r sin cortes al desplazarse por la sede",
+        "Switches PoE Gigabit para alimentación de cámaras, teléfonos IP y APs",
+        "Segmentación de redes VLAN para aislar invitados y datos corporativos",
+        "Gestión centralizada en la nube (Ruijie Cloud / Omada / UniFi)",
       ],
       aplicaciones: "Restaurantes, hoteles, coworking, colegios y oficinas de alta concurrencia.",
+      imagen: "/images/proyectos/wifi-conmutacion.jpg",
     },
     {
       id: "mantenimiento",
@@ -71,32 +80,19 @@ export const Services: React.FC = () => {
       icono: Wrench,
       color: "from-sky-500 to-blue-600",
       descripcion:
-        "Laboratorio técnico especializado en diagnóstico, limpieza ultrasónica, reemplazo de pasta térmica de alta conductividad, ensamble y repotenciación con unidades SSD NVMe.",
+        "Laboratorio técnico especializado en diagnóstico, descontaminación profunda de polvo, reemplazo de pasta térmica de alta conductividad, ensamble y repotenciación con unidades SSD NVMe y memoria RAM.",
       puntosClave: [
-        "Limpieza profunda y cambio de pasta térmica (Arctic MX-4)",
-        "Diagnóstico de memoria RAM, tarjeta madre y discos duros",
-        "Instalación limpia de sistemas operativos y antivirus",
+        "Limpieza profunda de filtros, disipadores y cambio de pasta térmica",
+        "Diagnóstico de memoria RAM, tarjeta madre, fuentes y discos duros",
+        "Instalación limpia de sistemas operativos, licencias y seguridad",
         "Migración de discos mecánicos a discos sólidos ultrarrápidos",
-        "Pólizas de soporte periódico mensual para empresas",
+        "Pólizas de soporte periódico mensual o por demanda para empresas",
       ],
-      aplicaciones: "Equipos de escritorio, laptops corporativas, servidores torre y estaciones de diseño.",
-    },
-    {
-      id: "trazabilidad",
-      titulo: "Trazabilidad Digital y Garantías con Código QR",
-      categoria: "Software Exclusivo C&R",
-      icono: QrCode,
-      color: "from-cyan-500 to-teal-600",
-      descripcion:
-        "Módulo de desarrollo propio incluido en nuestra plataforma. Cada equipo intervenido recibe una etiqueta con código QR único para auditoría inmediata y consulta de garantía.",
-      puntosClave: [
-        "Escaneo público desde cualquier celular sin necesidad de login",
-        "Consulta inmediata de marca, modelo, estado y fecha de garantía",
-        "Historial inmutable de mantenimientos y técnicos responsables",
-        "Generación automática de PDF con cotizaciones y actas de entrega",
-        "Protección total de la privacidad del cliente",
-      ],
-      aplicaciones: "Inventarios empresariales, control de activos fijos y seguimiento de garantías.",
+      aplicaciones: "Equipos de escritorio, estaciones de alto rendimiento, laptops corporativas y servidores.",
+      antesDespues: {
+        antes: "/images/proyectos/mantenimiento-antes.jpg",
+        despues: "/images/proyectos/mantenimiento-despues.jpg",
+      },
     },
   ];
 
@@ -111,12 +107,12 @@ export const Services: React.FC = () => {
           Servicios de Infraestructura Tecnológica
         </h1>
         <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-          Desde el cableado estructurado hasta la gestión de seguridad electrónica y trazabilidad digital, ofrecemos soluciones sólidas y con respaldo formal.
+          Desde el cableado estructurado en todas sus categorías hasta redes Wi-Fi multi-banda, videovigilancia CCTV y mantenimiento profundo de cómputo.
         </p>
       </div>
 
-      {/* Lista de Servicios en Tarjetas Grandes 20px */}
-      <div className="space-y-8">
+      {/* Lista de Servicios en Tarjetas Grandes */}
+      <div className="space-y-10">
         {serviciosDetallados.map((srv, idx) => {
           const Icon = srv.icono;
           return (
@@ -124,9 +120,9 @@ export const Services: React.FC = () => {
               key={srv.id}
               className="card-glass p-8 sm:p-10 relative overflow-hidden"
             >
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                {/* Columna Izquierda: Identidad y Descripción */}
-                <div className="lg:col-span-7 space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                {/* Columna Izquierda: Identidad, Descripción y Alcance */}
+                <div className="lg:col-span-6 space-y-5">
                   <div className="flex items-center gap-3">
                     <div className={`w-12 h-12 rounded-2xl bg-gradient-to-tr ${srv.color} flex items-center justify-center text-white shadow-md shadow-blue-500/15 shrink-0`}>
                       <Icon className="w-6 h-6" />
@@ -141,16 +137,32 @@ export const Services: React.FC = () => {
                     </div>
                   </div>
 
-                  <p className="text-slate-600 text-xs sm:text-sm leading-relaxed pt-2">
+                  <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
                     {srv.descripcion}
                   </p>
 
-                  <div className="pt-2 text-xs text-slate-500">
+                  {/* Alcance y Compromisos */}
+                  <div className="bg-blue-50/50 rounded-2xl p-5 border border-blue-100/80 space-y-2.5">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-blue-600" />
+                      Alcance y Compromisos
+                    </h3>
+                    <ul className="space-y-2 text-xs text-slate-700">
+                      {srv.puntosClave.map((punto, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                          <span>{punto}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="text-xs text-slate-500">
                     <strong className="text-slate-800">Ideal para:</strong> {srv.aplicaciones}
                   </div>
 
                   {/* Acciones */}
-                  <div className="flex flex-wrap items-center gap-3 pt-4">
+                  <div className="flex flex-wrap items-center gap-3 pt-1">
                     <Link
                       to="/cotizador"
                       className="btn-primary-gradient px-5 py-2.5 text-xs font-bold flex items-center gap-2"
@@ -168,20 +180,72 @@ export const Services: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Columna Derecha: Puntos Clave & Entregables */}
-                <div className="lg:col-span-5 bg-blue-50/50 rounded-2xl p-6 border border-blue-100/80 space-y-3">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-blue-600" />
-                    Alcance y Compromisos
-                  </h3>
-                  <ul className="space-y-2.5 text-xs text-slate-700">
-                    {srv.puntosClave.map((punto, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>{punto}</span>
-                      </li>
-                    ))}
-                  </ul>
+                {/* Columna Derecha: Evidencia Fotográfica en su Proporción Natural */}
+                <div className="lg:col-span-6">
+                  {srv.antesDespues ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div
+                        onClick={() =>
+                          setImagenAmpliada({
+                            src: srv.antesDespues!.antes,
+                            alt: `Antes - ${srv.titulo}`,
+                          })
+                        }
+                        className="relative rounded-2xl overflow-hidden border-2 border-amber-200 bg-slate-100 aspect-[3/4] cursor-pointer group shadow-sm"
+                      >
+                        <img
+                          src={srv.antesDespues.antes}
+                          alt={`Antes - ${srv.titulo}`}
+                          className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
+                        />
+                        <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase bg-amber-500 text-white shadow-md">
+                          Antes
+                        </span>
+                        <span className="absolute bottom-3 right-3 p-1.5 rounded-lg bg-slate-900/70 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                          <ZoomIn className="w-4 h-4" />
+                        </span>
+                      </div>
+
+                      <div
+                        onClick={() =>
+                          setImagenAmpliada({
+                            src: srv.antesDespues!.despues,
+                            alt: `Después - ${srv.titulo}`,
+                          })
+                        }
+                        className="relative rounded-2xl overflow-hidden border-2 border-emerald-200 bg-slate-100 aspect-[3/4] cursor-pointer group shadow-sm"
+                      >
+                        <img
+                          src={srv.antesDespues.despues}
+                          alt={`Después - ${srv.titulo}`}
+                          className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
+                        />
+                        <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase bg-emerald-600 text-white shadow-md">
+                          Después
+                        </span>
+                        <span className="absolute bottom-3 right-3 p-1.5 rounded-lg bg-slate-900/70 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                          <ZoomIn className="w-4 h-4" />
+                        </span>
+                      </div>
+                    </div>
+                  ) : srv.imagen ? (
+                    <div
+                      onClick={() => setImagenAmpliada({ src: srv.imagen!, alt: srv.titulo })}
+                      className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 aspect-[16/10] cursor-pointer group shadow-sm"
+                    >
+                      <img
+                        src={srv.imagen}
+                        alt={srv.titulo}
+                        className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
+                      />
+                      <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-[11px] font-bold bg-slate-900/80 text-white shadow-sm">
+                        Evidencia Certificada C&R
+                      </span>
+                      <span className="absolute bottom-3 right-3 p-1.5 rounded-lg bg-slate-900/70 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ZoomIn className="w-4 h-4" />
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -206,6 +270,36 @@ export const Services: React.FC = () => {
           </Link>
         </div>
       </div>
+
+      {/* MODAL LIGHTBOX */}
+      {imagenAmpliada && (
+        <div
+          onClick={() => setImagenAmpliada(null)}
+          className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-5xl w-full max-h-[90vh] flex flex-col items-center"
+          >
+            <button
+              type="button"
+              onClick={() => setImagenAmpliada(null)}
+              className="absolute -top-11 right-0 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
+            >
+              <X className="w-4 h-4" />
+              <span>Cerrar</span>
+            </button>
+            <img
+              src={imagenAmpliada.src}
+              alt={imagenAmpliada.alt}
+              className="max-h-[82vh] w-auto max-w-full rounded-2xl border border-white/20 shadow-2xl object-contain bg-slate-900"
+            />
+            <p className="text-white text-xs sm:text-sm font-semibold mt-3 text-center">
+              {imagenAmpliada.alt}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

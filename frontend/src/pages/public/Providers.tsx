@@ -27,8 +27,8 @@ export const Providers: React.FC = () => {
       nombre: "Panduit",
       categoria: "Cableado Estructurado & Racks",
       descripcion:
-        "Referente mundial en conectividad de red para centros de datos y oficinas. Usamos sus patch panels, jacks RJ45 Mini-Com y cable 100% cobre certificado.",
-      lineas: ["Cable UTP Cat6 100% Cobre", "Patch Panels 24/48 Puertos", "Organizadores Horizontales", "Jacks RJ45 TG"],
+        "Referente mundial en conectividad de red para centros de datos y oficinas. Usamos sus patch panels, jacks RJ45 Mini-Com y cable 100% cobre certificado en todas las categorías.",
+      lineas: ["Cable UTP Cat5e / Cat6 / Cat6A", "Patch Panels 24/48 Puertos", "Organizadores Horizontales", "Jacks RJ45 TG"],
       icono: Network,
       color: "from-emerald-500 to-teal-600",
       badge: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -36,10 +36,10 @@ export const Providers: React.FC = () => {
     },
     {
       nombre: "Ruijie Networks / Reyee",
-      categoria: "Wi-Fi 6 & Conmutación Cloud",
+      categoria: "Redes Wi-Fi (2.4 / 5 / 6 GHz) & Switching",
       descripcion:
-        "Equipos de red de alto desempeño con administración 100% en la nube gratuita de por vida. Ideales para eliminar cuellos de botella y gestionar múltiples sedes.",
-      lineas: ["Access Points Wi-Fi 6 Mesh", "Switches PoE+ Administrables", "Routers Balanceadores Multi-WAN", "Ruijie Cloud"],
+        "Equipos de red multi-banda de alto desempeño con administración 100% en la nube gratuita de por vida. Ideales para eliminar cuellos de botella y gestionar múltiples sedes.",
+      lineas: ["Access Points 2.4 / 5 / 6 GHz", "Switches PoE+ Administrables", "Routers Balanceadores Multi-WAN", "Ruijie Cloud"],
       icono: Radio,
       color: "from-blue-500 to-indigo-600",
       badge: "bg-blue-50 text-blue-700 border-blue-200",

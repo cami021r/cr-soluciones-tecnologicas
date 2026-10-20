@@ -15,7 +15,7 @@ export const Contact: React.FC = () => {
     nombre: "",
     email: "",
     telefono: "",
-    servicio: "Cableado Cat6 y Redes",
+    servicio: "Cableado Estructurado y Redes",
     mensaje: "",
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -49,7 +49,7 @@ export const Contact: React.FC = () => {
         nombre: "",
         email: "",
         telefono: "",
-        servicio: "Cableado Cat6 y Redes",
+        servicio: "Cableado Estructurado y Redes",
         mensaje: "",
       });
       setTimeout(() => setSubmitted(false), 8000);
@@ -240,11 +240,10 @@ export const Contact: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, servicio: e.target.value })}
                     className="w-full bg-white text-slate-900 text-xs sm:text-sm px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
                   >
-                    <option value="Cableado Cat6 y Redes">Cableado Estructurado Cat6 y Racks</option>
-                    <option value="CCTV y Cámaras Hikvision">Videovigilancia CCTV y Cámaras IP</option>
-                    <option value="Wi-Fi 6 y Conmutación Ruijie">Redes Wi-Fi 6 y Switches Ruijie</option>
+                    <option value="Cableado Estructurado y Redes">Cableado Estructurado y Racks</option>
+                    <option value="CCTV y Cámaras IP">Videovigilancia CCTV y Cámaras IP</option>
+                    <option value="Redes Wi-Fi y Conmutación">Redes Wi-Fi (2.4 / 5 / 6 GHz) y Conmutación</option>
                     <option value="Mantenimiento PCs">Mantenimiento y Soporte TI</option>
-                    <option value="Trazabilidad y QR">Trazabilidad con Códigos QR</option>
                   </select>
                 </div>
               </div>
